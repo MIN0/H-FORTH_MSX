@@ -1,87 +1,89 @@
 VAR( XRLTOP )
 ARRAY( BYTE: FCB 37 )
 
-/* --- Word to load XRL --- */
+/* －－－　ＸＲＬをロードするワード　－－－ */
 
 : LOADXRL
 VAR( FILESIZE NEWFREE )
-"PSG.XRL" & FCB CNVFCB   /* Set name to FCB */
-DROP                     /* Discard the conversion result as it is not needed */
+"PSG.XRL" & FCB CNVFCB			/* ＦＣＢに名前を設定 */
+DROP					/* 変換結果はいらないので捨てる */
 
-0 ( & FCB 12 + ) !       /* Reset current block */
-& FCB >> _DE $0F BDOS    /* File open */
-_A IF{                   /* Fail if A is not 0 */
-    "FILE NOT FOUND" ERROR  /* Display error and exit */
+0 ( & FCB 12 + ) !			/* カレントブロックをリセット */
+& FCB >> _DE $0F BDOS			/* ファイルオープン */
+_A IF{					/* Ａが０でなければ失敗 */
+    "FILE NOT FOUND" ERROR		/* エラー表示して終了 */
 }
 
-( & FCB 16 + @ ) >> FILESIZE  /* Lower 2 bytes of file size */
+( & FCB 16 + @ ) >> FILESIZE		/* ファイルサイズの下位２バイト */
 
-( & FCB 18 + @ ) 0 <>    /* Is the upper file size not 0? */
-FILESIZE ( _ENDFREE _FREE - ) _>  /* If the bottom is larger than the free area */
+( & FCB 18 + @ ) 0 <> 			/* ファイルサイズ上位が０でないか */
+FILESIZE ( _ENDFREE _FREE - ) _>	/* 下位がフリーエリアより大きければ */
 OR IF{
-    "FILE TOO LARGE" ERROR  /* Display error and exit */
+    "FILE TOO LARGE" ERROR		/* エラー表示して終了 */
 }
 
-1 ( & FCB 14 + ) !          /* Record size = 1 byte */
-0 ( & FCB 33 + ) ! 0 ( & FCB 35 + ) !  /* Record position = 0 */
+1 ( & FCB 14 + ) !			/* レコードサイズ＝１バイト */
+0 ( & FCB 33 + ) ! 0 ( & FCB 35 + ) !	/* レコードポジション＝０ */
 
-_FREE >> _DE $1A BDOS      /* Set DTA to the beginning of free area */
+_FREE >> _DE $1A BDOS			/* ＤＴＡをフリーエリアの先頭に設定 */
 
-& FCB >> _DE FILESIZE >> _HL $27 BDOS  /* Read execution */
+& FCB >> _DE  FILESIZE >> _HL  $27 BDOS	/* 読み込み実行 */
 
-_FREE >> XRLTOP            /* Start address of loaded XRL */
+_FREE >> XRLTOP				/* ロードされたＸＲＬの先頭番地 */
 
-( XRLTOP 2 + ) @ XRLTOP + >> NEWFREE  /* After relocating, the relocation table is no longer needed. */
+( XRLTOP 2 + ) @ XRLTOP + >> NEWFREE	/* リロケート後はリロケーション */
+					/* テーブルはいらなくなるので。 */
 
-XRLTOP RELOCATE            /* Execute relocate */
+XRLTOP RELOCATE				/* リロケートを実行 */
 
-NEWFREE >> _FREE           /* Reset _FREE */
+NEWFREE >> _FREE			/* _FREE を設定しなおす */
 
-/* Although it is not relevant to this example, it is recommended to reset _FREE after loading to prevent the XRL body from being destroyed by variable arrays, etc. */
+/* 今回の例では関係ありませんが、ＸＲＬのボディが可変配列などで破壊されるの
+   を防ぐため、ロード後は _FREE を設定しなおすことをお薦めします。 */
 
 ;
 
-/* --- Word that calls XRL --- */
+/* －－－　ＸＲＬを呼ぶワード　－－－ */
 
-: PSG@ PARAM( N )
+: PSG@  PARAM( N )
 
-N ( XRLTOP 4 + ) C!     /* Write N to REGSEL */
-( XRLTOP 6 + ) CALL     /* Call RDPSG */
-( XRLTOP 5 + ) C@       /* Read REGDAT */
+N ( XRLTOP 4 + ) C!		/* REGSEL に N を書き込む */
+( XRLTOP 6 + ) CALL		/* RDPSG を呼び出す */
+( XRLTOP 5 + ) C@		/* REGDAT を読みだす */
 ;
 
-: PSG! PARAM( D N )
+: PSG!  PARAM( D N )
 
-N ( XRLTOP 4 + ) C!    /* Write N to REGSEL */
-D ( XRLTOP 5 + ) C!    /* Write D to REGDAT */
-( XRLTOP 9 + ) CALL    /* Call WRTPSG */
+N ( XRLTOP 4 + ) C!		/* REGSEL に N を書き込む */
+D ( XRLTOP 5 + ) C!		/* REGDAT に D を書き込む */
+( XRLTOP 9 + ) CALL		/* WRTPSG を呼び出す */
 ;
 
-/* --- Main word --- */
+/* －－－　メインワード　－－－ */
 
 : MAIN
 VAR( I F )
 
-LOADXRL            /* Load XRL */
+LOADXRL				/* ＸＲＬをロード */
 
-$BE 7 PSG!         /* Channel 1, only square wave ON */
- 12 8 PSG!         /* Channel 1, volume = 12 */
+$BE 7 PSG!			/* チャネル１、矩形波のみＯＮ */
+ 12 8 PSG!			/* チャネル１、ボリューム＝１２ */
 
 0 >> I
-WHILE( I 5 < ){    /* repeat 5 times */
+WHILE( I 5 < ){			/* ５回くり返し */
     100 >> F
     WHILE( F 300 < ){
-        ( F 255 AND ) 0 PSG!   /* Set lower division ratio */
-        ( F 256 _/ ) 1 PSG!    /* Set the upper division ratio */
+        ( F 255 AND ) 0 PSG!	/* 分周比の下位を設定 */
+        ( F 256 _/  ) 1 PSG!	/* 分周比の上位を設定 */
 
-        1 VSYNC    /* Wait for one vertical period (1/60 seconds) */
+        1 VSYNC			/* 垂直周期を１回待つ（1/60秒） */
 
         F 1 + >> F
     }
     I 1 + >> I
 }
 
-  0 8 PSG!         /* Channel 1, volume = 0 */
-$BF 7 PSG!         /* Stop sound on all channels */
+  0 8 PSG!			/* チャネル１、ボリューム＝０ */
+$BF 7 PSG!			/* 全チャネル発音停止 */
 ;
 END MAIN
