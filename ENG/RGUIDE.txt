@@ -1,0 +1,808 @@
+－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+RGUIDE.DOC H-FORTH Ver1.4 Reference Guide
+
+  Copyright(c) 1999 A.Hiramatsu (Akio Hiramatsu) 99/04/01
+－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+
+
+This reference guide provides references and error messages for all predefined words in the system.
+
+
+●All word reference
+
+
+--- Usage Guide ---------------------------------------------- ---------------------
+
+
++  n  PARAM( i1 i2 ) i3
+↑ ↑ ↑             ↑
+｜ ｜ ｜             Return value (value placed on the stack after execution)
+｜ ｜ Parameter (value taken from the stack before execution)
+｜ Word type
+word name
+
+ARRAY>> <w> c PARAM( a i )
+↑      ↑  ↑ ↑
+｜      ｜  ｜ Parameter
+｜      ｜ Word type
+|      Word name as operand
+word name
+
+・Word type
+
+    n   compiled word
+    c   compiler control word, can be used both in and outside word definitions
+    cc  compiler control word, can only be used during word definition
+    ce  compiler control word, can only be used outside word definitions
+    x   Execution control word, can only be used in word definitions
+    Constant   System defined constants
+    Variable   System Variable
+
+*The word types mentioned here come from the internal structure of the word, and some may not be intuitively appropriate. For example, the word EXIT is an ``execution control word'' considering its function of ``returning to DOS,'' but the actual internal structure is the same as a ``compiled word,'' so the word EXIT has an n appended to it.
+
+・Parameters and return values
+
+    i  Integer type (2 byte size) value
+    c  Byte type (1 byte size) value
+    b  Boolean value (0 if false, otherwise true)
+    s  string
+    a  some address
+
+*If the parameter is of byte type, the upper byte will be ignored. Also, if the return value is of byte type, the upper byte is 0.
+
+・Word name as operand
+
+    <w> One word name required
+    <v> ) Requires variable name list
+    <e> ) Others. See user's guide for details
+
+-------------------------------------------------- ----------- End of legend ---
+
+<<< Arithmetic word >>>
+
++  n PARAM( i1 i2 ) i3
+
+   Perform addition. Puts i3, the sum of i1 and i2, on the stack.
+
+-  n PARAM( i1 i2 ) i3
+
+   Perform subtraction. Subtract i2 from i1 and put i3 on the stack.
+
+*  n PARAM( i1 i2 ) i3
+
+   Do the multiplication. Puts i3, the product of i1 and i2, on the stack.
+
+_/ n PARAM( i1 i2 ) i3
+
+   Performs division of unsigned numbers. Assuming i1 and i2 are unsigned numbers, divide i1 by i2 and place i3 on the stack.
+
+/ n PARAM( i1 i2 ) i3
+
+   Performs division of signed numbers. Considering i1 and i2 as signed numbers, divide i1 by i2 and place the result i3 on the stack.
+
+AND n PARAM( i1 i2 ) i3
+
+   Performs a full-bit AND of i1 and i2 and places the result i3 on the stack.
+
+OR n PARAM( i1 i2 ) i3
+
+   Performs the all-bit logical OR of i1 and i2 and places the result i3 on the stack.
+
+XOR n PARAM( i1 i2 ) i3
+
+   Performs all-bit exclusive OR of i1 and i2, and places the result i3 on the stack.
+
+CPL n PARAM( i1 ) i2
+
+   Inverts all bits of i1 and puts the result i2 on the stack.
+
+NEG n PARAM( i1 ) i2
+
+   Negates the sign of signed number i1 and places the result, i2, on the stack.
+
+ABS n PARAM( i1 ) i2
+
+   Places the absolute value i2 of signed number i1 on the stack.
+
+CBW n PARAM( c ) i
+
+   The 7th bit of the byte-type number c is regarded as the sign, and it is converted to a 2-byte signed number i and placed on the stack.
+
+<<< Comparison words >>>
+
+=  n PARAM( i1 i2 ) b
+
+   If the numbers i1 and i2 are equal, put 1 on the stack, otherwise put 0 on the stack.
+
+<>  n PARAM( i1 i2 ) b
+
+   If the numbers i1 and i2 are not equal, put 1 on the stack, otherwise put 0 on the stack.
+
+_>  n PARAM( i1 i2 ) b
+
+   If unsigned number i1 is greater than i2, put 1 on the stack, otherwise put 0 on the stack.
+
+_>=  n PARAM( i1 i2 ) b
+
+   If unsigned numbers i1 and i2 are equal or i1 is greater than i2, put 1 on the stack, otherwise put 0 on the stack.
+
+_<  n PARAM( i1 i2 ) b
+
+   If the unsigned number i1 is less than i2, put 1 on the stack, otherwise put 0 on the stack.
+
+_<= n PARAM( i1 i2 ) b
+
+   If unsigned numbers i1 and i2 are equal or i1 is less than i2, place 1 on the stack, otherwise place 0 on the stack.
+
+>  n PARAM( i1 i2 ) b
+
+   If signed number i1 is greater than i2, place 1 on the stack, otherwise place 0.
+
+>=  n PARAM( i1 i2 ) b
+
+   If signed numbers i1 and i2 are equal or i1 is greater than i2, put 1 on the stack, otherwise put 0 on the stack.
+
+<  n PARAM( i1 i2 ) b
+
+   If the signed number i1 is less than i2, put 1 on the stack, otherwise put 0 on the stack.
+
+<=  n PARAM( i1 i2 ) b
+
+   If the signed numbers i1 and i2 are equal or i1 is less than i2, put 1 on the stack, otherwise put 0 on the stack.
+
+0=  n PARAM( i ) b
+
+   If the number i is 0, place 1 on the stack, otherwise place 0.
+
+?-  n PARAM( i ) b
+
+   If the signed number i is negative, put 1 on the stack, and if it is 0 or positive, put 0 on the stack.
+
+
+＜＜＜Console words　＞＞＞
+
+_.  n PARAM( i )
+
+   Displays the number i in decimal, treating it as unsigned.
+
+.   n PARAM( i )
+
+   Displays the number i in decimal, assuming it is signed.
+
+H.  n PARAM( i )
+
+   Displays the number i as 4-digit hexadecimal, assuming it is unsigned.
+
+HB. n PARAM( c )
+
+   Displays the byte type number c as two hexadecimal digits.
+
+STR. n PARAM( s )
+
+   Outputs the string to the screen, assuming s as the starting address of the string.
+
+CRLF n PARAM( )
+
+   Start a new line.
+
+SPACE n PARAM( )
+
+   Outputs one half-width space.
+
+CHPUT n PARAM( c )
+
+   Outputs the character code c to the screen.
+
+CHGET n PARAM( ) c
+
+   Enter one character from the keyboard and place the character code c on the stack.
+
+DUMP n PARAM( a i )
+
+   Display i byte dump from address a. Useful for debugging. (^^;
+
+
+<<< Memory operation words >>>
+
+!  n PRAM( i a )
+
+   Writes the 2-byte number i to address a. Specifically, it writes the lower byte of i to address a, and the upper byte of i to address a+1.
+
+@  n PARAM( a ) i
+
+   Reads the contents of addresses a and a+1 as 2-byte values, and places the value i on the stack.
+
+C! n PARAM( c a )
+
+   Writes byte type number c to address a.
+
+C@ n PARAM( a ) c
+
+   Reads address a and puts its value c on the stack.
+
+MEMMOVE n PARAM( a1 i a2 )
+
+   Transfer i bytes from address a1 to address a2. It works correctly even if the transfer source and destination are duplicated.
+
+＜＜＜Words for string manipulation　＞＞＞
+
+STREQ n PARAM( a s ) b
+
+   Compares the memory contents starting at address a to see if they are equal to the string s. Comparisons are made for the length of s.
+
+STRMOVE n PARAM( s a )
+
+   Transfers the string s to memory starting at address a. At least the length of s + 1 byte after address a must be an area (array or user free area) that is safe to rewrite.
+
+STRLEN n PARAM( s ) i
+
+   Puts length i of string s on the stack.
+
+STRCAT n PARAM( s1 s2 )
+
+   Joins s2 after string s1. After s1, at least the length of s2 + 1 byte must be a safe area even if it is rewritten.
+
+
+<<< I/O port access word >>>
+
+P!  n PARAM( c a )
+
+   Write byte type value c to I/O port a.
+
+P@  n PARAM( a ) c
+
+   Read I/O port number a and place its value c on the stack.
+
+<<< Stack manipulation words >>>
+
+DUP n PARAM( i ) i i
+
+   Copies the value i at the top of the stack and puts it on the stack.
+
+OVER n PARAM( i1 i2 ) i1 i2 i1
+
+   Copy the second value i1 from the top of the stack and place it on the stack.
+
+SWAP n PARAM( i1 i2 ) i2 i1
+
+   Swap the top value i2 on the stack with the second value i1.
+
+DROP n PARAM( i )
+
+   Discards the value i at the top of the stack.
+
+<<< System-defined constants >>>
+
+TRUE constant PARAM( ) b
+
+   Puts 1 (boolean value "true") on the stack.
+
+FALSE constant PARAM( ) b
+
+   Puts 0 (boolean value "false") on the stack.
+
+
+<<< System variables >>>
+
+_FREE variable PARAM( ) a
+
+   Indicates the starting address of the user free area.
+
+_ENDFREE variable PARAM( ) a
+
+   Indicates the final address of the user free area.
+
+_F  variable PARAM( ) c
+_A  variable PARAM( ) c
+_C  variable PARAM( ) c
+_B  variable PARAM( ) c
+_E  variable PARAM( ) c
+_D  variable PARAM( ) c
+_L  variable PARAM( ) c
+_H  variable PARAM( ) c
+_IX variable PARAM( ) i
+_IY variable PARAM( ) i
+_BC variable PARAM( ) i
+_DE variable PARAM( ) i
+_HL variable PARAM( ) i
+
+   The above are CPU register variables. Use with native code calls.
+
+_SX variable PARAM( ) i
+_SY variable PARAM( ) i
+_DX variable PARAM( ) i
+_DY variable PARAM( ) i
+_NX variable PARAM( ) i
+_NY variable PARAM( ) i
+_COL variable PARAM( ) c
+_ARG variable PARAM( ) c
+_LOG variable PARAM( ) c
+
+The above are VDP command variables. Use the VDP command word after setting the necessary values ​​for these variables.
+
+_RPG variable PARAM( ) i
+
+   This is a page selector that selects the VRAM read (transfer source) page.
+
+_WPG variable PARAM( ) i
+
+   This is a page selector that selects the VRAM write (transfer destination) page.
+
+_DPG variable PARAM( ) i
+
+   A page selector that selects the page to display. After assigning a value to this, execute SETDPG to change the displayed page.
+
+_XCHGET variable PARAM( ) i
+
+   Assign the address of the one-character input routine created by the user. If this value is 0, input will be performed by BIOS CHGET. Default value is 0.
+
+_XCHPUT variable PARAM( ) i
+
+   Assign the address of the one-character output routine created by the user. If this value is 0, output will be performed by BIOS CHPUT. Default value is 0.
+
+<<< VDP operation words >>>
+
+VDP! n PARAM( c1 c2 )
+
+   Write c1 to VDP register c2.
+
+VDP@ n PARAM( c1 ) c2
+
+   The last value written to VDP register c1 is retrieved from the BIOS work area and the value c2 is placed on the stack.
+
+VDPS@ n PARAM( c1 ) c2
+
+   Read the VDP status register c1 and place the value c2 on the stack.
+
+VSYNC n PARAM( i )
+
+   Waits i vertical periods of the screen.
+
+SETDPG n PARAM( )
+
+   Switches the display page to the page pointed to by the system variable _DPG. Does nothing if the screen mode is 4 or lower.
+
+PAL! n PARAM( i c )
+
+   Set palette value i to palette c. The value of i is green x 256 + red x 16 + blue.
+
+SETPAL n PARAM( a )
+
+   Sends 32 bytes from address a to the palette register.
+
+<<< VRAM operation words >>>
+
+V! n PARAM( i a )
+
+   Writes integer type value i to 2 bytes starting from address a in VRAM. The system variable _WPG is added to a.
+
+VC! n PARAM( c a )
+
+   Writes a byte type number c to address a in VRAM. The system variable_WPG is added to a.
+
+V@ n PARAM( a ) i
+
+   Reads 2 bytes from address a in VRAM and places the value i on the stack.
+   The system variable _RPG is added to a.
+
+VC@ n PARAM( a ) c
+
+   Reads 1 byte from address a in VRAM and places the value c on the stack.
+   The system variable _RPG is added to a.
+
+LDIRVM n PARAM( a1 i a2 )
+
+   Transfer i bytes from memory address a1 to VRAM address a2. The system variable _WPG is added to a2.
+
+LDIRMV n PARAM( a1 i a2 )
+
+   Transfer i bytes from address a1 in VRAM to address a2 in memory. The system variable _RPG is added to a1.
+
+FILVRM n PARAM( c i a )
+
+   Fill i bytes from address a in VRAM with 1-byte value c. The system variable _WPG is added to a.
+
+<<< VDP command word >>>
+
+LMMC n PARAM( a )
+
+   Logically transfers the data starting from address a in memory to the rectangular area of ​​VRAM. For screens 5 and 7.
+   System variables to set: _DX _DY _NX _NY _LOG _WPG
+
+LMCM n PARAM( a )
+
+   Logically transfers the data in the rectangular area of ​​VRAM to memory from address a onwards. For screens 5 and 7.
+   System variables to set: _SX _SY _NX _NY _RPG
+
+LMMC8 n PARAM( a )
+
+   Logically transfers the data starting from address a in memory to the rectangular area of ​​VRAM. For screens 8 and above.
+   System variables to set: _DX _DY _NX _NY _LOG _WPG
+
+LMCM8 n PARAM( a )
+
+   Logically transfers the data in the rectangular area of ​​VRAM to memory from address a onwards. For screens 8 and above.
+   System variables to set: _SX _SY _NX _NY _RPG
+
+HMMC n PARAM( a )
+
+   Data from memory address a onwards is transferred at high speed to the rectangular area of ​​VRAM.
+   System variables to set: _DX _DY _NX _NY _WPG
+
+LMMM n PARAM( )
+
+   Performs logical transfer of a rectangular area on VRAM.
+   System variables to set: _SX _SY _DX _DY _NX _NY _LOG _RPG _WPG
+
+LMMV n PARAM( )
+
+   Logically fills a rectangular area on VRAM.
+   System variables to set: _DX _DY _NX _NY _COL _LOG _WPG
+
+HMMM n PARAM( )
+
+   Performs high-speed transfer of rectangular areas on VRAM.
+   System variables to set: _SX _SY _DX _DY _NX _NY _RPG _WPG
+
+HMMV n PARAM( )
+
+   Performs high-speed filling of a rectangular area on VRAM.
+   System variables to set: _DX _DY _NX _NY _COL _WPG
+
+LINE n PARAM( )
+
+   Draw a straight line on VRAM. .
+   System variables to set: _DX _DY _NX _NY _COL _LOG _WPG
+
+PSET n PARAM( )
+
+   Draw a point on VRAM.
+   System variables to set: _DX _DY _COL _LOG _WPG
+
+POINT n PARAM( ) c
+
+   Check the color of the point on VRAM. The return value c is the result.
+   System variables to set: _SX _SY _RPG
+
+SRCH n PARAM( ) i
+
+   Performs a horizontal search for a specified color or a color other than the specified color on VRAM. The return value is the X coordinate where i was found. If not found, i is -1.
+   System variables to set: _SX _SY _COL _ARG _RPG
+
+<<< Native code call >>>
+
+CALL n PARAM( a )
+
+   Calls address a on the current memory map.
+
+BIOS n PARAM(a)
+
+   Call address a of BIOS (main ROM).
+
+BDOS n PARAM( c )
+
+   Execute DOS function call c.
+
+CNVFCB n PARAM( s a ) i
+
+   Converts the string s representing the file name to DOS FCB format and transfers it to address a. Places the number of successfully converted characters i on the stack.
+
+<<< Compile switch >>>
+
+STKCHKON ce PARAM( )
+
+   From now on, we will detect stack errors during the loop. (Default)
+
+STKCHKOFF ce PARAM( )
+
+   From now on, stack errors during the loop will not be detected.
+
+BREAKON ce PARAM( )
+
+   After that, CTRL-STOP in the loop will be detected. (Default)
+
+BREAKOFF ce PARAM( )
+
+   After that, CTRL-STOP in the loop will not be detected.
+
+<<< Variable operation word >>>
+
+>> <w> c PARAM( i )
+
+   Assigns the number i to the variable name <w>.
+
+ARRAY>> <W> c PARAM( a i )
+
+   Set the starting address of the variable array <w> to a and the size to i (in bytes).
+
+
+<<< Definition words >>>
+
+: <w> ce PARAM( )
+
+   Begins defining a new word with <w> as the word name.
+
+PARAM( <v> ) cc PARAM( )
+
+   Specify the parameter variables of the new word using the variable name list <v>. : Valid only after <w> and cannot be used alone.
+
+; cc PARAM( )
+
+   Finish word definition.
+
+VAR( <v> ) c PARAM( )
+
+   Declares the variables specified by the variable name list <v>.
+
+CONST>> <w> ce PARAM( i )
+
+   Define a constant <w> whose value is the number i.
+
+ARRAY( <e> ) c PARAM( )
+
+   Declare an array variable. Please refer to the user's guide for details on how to write <e>.
+
+EXTVAR( <e> ) ce PARAM( )
+
+   Declare external variables. Please refer to the user's guide for details on how to write <e>.
+
+END <w> ce PARAM( )
+
+   Make the word <w> the main word and end the compilation. Write it at the end of the source program. If this is not written, the COM file will not be created.
+
+<<< Execution control word >>>
+
+IF{ x PARAM( b )
+
+   Branching syntax. Execute the words up to }, }{, }| only if the boolean value b is non-zero.
+
+}{ x PARAM( )
+
+   Used in combination with IF{. Specifies the beginning of a group of words to be executed if the condition is not met. Please refer to the user's guide for details.
+
+}| x PARAM( )
+
+   Used in combination with IF{. Used for multi-directional branching. Please refer to the user's guide for details.
+
+{ x PARAM( )
+
+   Begins a hindsight loop construct or an infinite loop construct.
+
+}WHILE x PARAM( b )
+
+   This is the end of the hindsight loop construct. If the boolean value b is not 0, return to {.
+
+WHILE( x PARAM( )
+
+   This is the beginning of a predetermined loop construct.
+
+){ x PARAM( b )
+
+   Evaluates a condition in a predetermined loop construct. If the boolean value b is 0, exit the loop.
+
+} x PARAM( )
+
+   Closes a branch or loop construct.
+
+CONTINUE x PARAM( )
+
+   return to the beginning of the loop
+
+BREAK x PARAM( )
+
+   Exit the loop.
+
+ERROR n PARAM( s )
+
+   Displays the string s as an error message and returns to DOS. Even if the screen mode has been changed, it will be restored.
+
+EXIT n PARAM( )
+
+   Exit the program and return to DOS. Even if the screen mode has been changed, it will be restored.
+
+<<< Other compiler control words >>>
+
+( c PARAM( )
+
+   A type of comment that does not affect program execution. Used to make expressions easier to read.
+
+) c PARAM( )
+
+   It is used to close PARAM( , VAR( , ARRAY( , DATA( ), etc. Also, when used alone, it is just a comment.
+
+[ c PARAM( )
+
+   Used to specify the array index number. It cannot be used alone.
+
+] c PARAM( i )
+
+   Used to specify the array index number. The number i becomes the index number. It cannot be used alone.
+
+INT: c PARAM( )
+
+   Used to specify the type of arrays and constant data columns. It cannot be used alone.
+
+BYTE: c PARAM( )
+
+   Used to specify the type of arrays and constant data columns. It cannot be used alone.
+
+DATA( <e> ) c PARAM( ) a i
+
+   Constant data string. Please refer to the user's guide for details on how to write <e>. Places the starting address a of the data string and the total number of bytes i on the stack.
+
+&  <w> c PARAM( ) a
+
+   If word <w> is a variable, put its address on the stack. If <w> is a compiled word, put its execution address on the stack.
+
+<<< Relocating the extended runtime library >>>
+
+RELOCATE n PARAM( a )
+
+   Relocates the extended runtime library that exists at address a. Before executing this, load the extended runtime library to address a using a DOS function call.
+
+
+<<< Words you should not pay too much attention to >>>
+
+  The following word groups do not need to be used for normal programming.
+
+PULDE n PARAM( i )
+
+   Takes a number from the stack and puts it in the DE register. This is a word prepared for machine language programs.
+
+PSHDE n PARAM( ) i
+
+   Places the value of the DE register on the stack. This is a word prepared for machine language programs.
+
+, ce PARAM( i )
+
+   Writes the value i directly into the COM file. This is a word for machine language programming.
+
+C, ce PARAM( c )
+
+   Writes the byte type number c directly into the COM file. A word for machine language programming.
+
+[[ cc PARAM( )
+
+   While a word is being defined, the state is temporarily set to the same state as outside the word definition. This allows you to use , and C during word definition. This is a word for machine language programming.
+
+]] cc PARAM( )
+
+   [[ Revert state. This is a word for machine language programming.
+
+GETPS n PARAM( ) a
+
+   Gets the value of the current parameter stack pointer.
+
+JSR n PARAM( a )
+
+   Execute the word indirectly by calling the execution address of the word obtained with &. However, this only works if the word in question does not interact with the stack at all. Do not call words that transfer data to or from the stack.
+
+>R  n PARAM( i )
+
+   Sends the number i onto the return stack.
+
+R>  n PARAM( ) i
+
+   Returns value i from the stack and places it on the stack.
+
+● Error message
+
+・Error during compilation
+
+
+TPA LESS THAN $C000
+
+   TPA is dividing $C000 when the compiler starts.
+
+NO COMMAND LINE PARAMETER
+
+   The source program name was not specified when starting the compiler.
+
+FILE NOT FOUND
+
+   The specified source program was not found.
+
+CAN'T SAVE COM-FILE
+
+   DOS caused an error when saving the COM file. (e.g. out of disk space or full of directory entries)
+
+ABNORMAL TERMINATED
+
+   The source program ended even though things that should be closed, such as character strings and word definitions, were not closed.
+
+UNDEFINED WORD
+
+   An attempt was made to use an undefined word.
+
+TOO LONG CHARACTER
+
+   The character constant exceeds 2 characters.
+
+TOO LARGE OBJECT
+
+   The size of the compiled COM file exceeded 32K bytes.
+
+OUT OF WORKSPACE
+
+   The compiler has run out of work space. You are defining too many word names etc.
+
+DEFINITION NESTED
+
+   An attempt was made to define another word without closing the word definition.
+
+";" WITHOUT ":"
+
+   ; was encountered even though the word was not being defined. (Depending on the situation, the following error may occur instead of this error.)
+
+CONT/DEF MODE ERROR
+
+   An attempt was made to use a word during word definition that cannot be used during word definition. or an attempt was made to use a word outside a word definition that cannot be used outside a word definition
+
+CAN'T CLOSE DEFINITION
+
+   Unable to close word definition. You are probably using the control syntax incorrectly.
+
+ALREADY DEFINED
+
+   You are trying to define a word with the same name as an already defined word.
+
+NOT ADDRESSED OBJECT
+
+You are trying to get the address of a constant, compiler control word, or execution control word with &.
+
+V-ARRAY INVALID
+
+   An attempt is made to use a variable array even though it has not been finalized.
+
+STRUCTURE NEST ERROR
+
+   The control syntax does not correspond correctly. For example, IF{ }WHILE.
+
+VARIABLE EXPECTED
+
+   A variable other than a variable is written where a variable is required.
+
+UNEXPECTED WORD
+
+   You are trying to use a word that cannot be used there. For example, when a word that cannot be used alone (such as BYTE:) is used alone.
+
+BROKEN STRING
+
+   There is no continuation of the string cut with "-.
+
+TOO LARGE ARRAY
+
+   The size of the array (number of bytes) exceeds 32767.
+
+V-ARRAY EXPECTED
+
+   I am trying to use ARRAY>> for something other than a variable array.
+
+・Errors during execution
+
+  This is an error that occurs when you run the compiled COM file. Run-time errors are indicated by short abbreviations. The full text is shown in parentheses.
+
+IDXOUT (Index out of range)
+
+   The index number of the array variable exceeds the declared range.
+
+ARYINV (V-Array invalid)
+
+   An attempt was made to use a variable array whose starting address and size are not determined.
+
+UNPSTK (Unpaired stack operation)
+
+   The number of times a number was placed on the stack and the number of times it was retrieved during the loop did not match.
+
+STKOVF (Stack overflow)
+
+   The parameter stack pointer has approached _ENDFREE to 256 bytes.
+
+BREAK (User Break)
+
+   CTRL-STOP was pressed during execution.
+
+NOTXRL (Not X-Runtime library)
+
+   An attempt was made to relocate something other than the extended runtime library.
+

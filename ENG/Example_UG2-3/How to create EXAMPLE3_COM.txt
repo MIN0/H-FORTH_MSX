@@ -1,0 +1,20 @@
+File name UGUIDE2.txt
+
+Cut and extract the assembler file from UGUIDE2.txt. The extracted file name is PSG.mac
+
+Converted with MSX assembler
+
+   M80 =PSG/r
+   L80 PSG,PSG/n/e
+
+Change the extension of the completed PSG.COM to PSG.XRL
+
+Cut and extract the FORTH language file from UGUIDE2.txt. The file name was set to EXAMPLE3.4TH.
+
+Compile with HFORTH
+
+   hforth example3.4th
+   
+EXAMPLE3.COM is created.
+
+Run EXAMPLE3.COM and if you hear a beep, it is successful.

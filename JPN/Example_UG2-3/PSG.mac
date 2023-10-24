@@ -1,0 +1,52 @@
+   ASEG
+   ORG 0100H
+
+XRLID: DB 'XR'
+ROFS:  DW ORGLOC-0100H      ; Offset from address 0100H
+
+; --- From here comes the body, that is, the main body of the machine language routine ---
+
+XRLBDY:             ; There's no need to label it like this (^^;
+
+REGSEL: DB 0        ; Area for exchanging data with H-FORTH
+REGDAT: DB 0        ; Same as above
+
+RDPSG:
+RL0001: JP XRDPSG   ; Entrance of call from H-FORTH
+WRPSG:
+RL0002: JP XWRPSG   ; Same as above
+
+; As mentioned above, it is wise to place the area where data is exchanged and the call entrance together at the beginning of the body. Even if the version of the machine language routine changes, the program on the H-FORTH side does not need to be modified.
+
+XRDPSG:
+RL0003: LD A,(REGSEL) ; Register number
+   LD IX,096H      ; BIOS RDPSG address
+   LD IY,(0FCC0H)  ; Main ROM slot
+   CALL 01CH       ; Interslot call
+RL0004: LD (REGDAT),A ; Result
+   RET
+
+XWRPSG:
+RL0005: LD A,(REGDAT) ; Data to write
+   LD E,A
+RL0006: LD A,(REGSEL) ; Register number
+   LD IX,093H      ; BIOS WRTPSG address
+   LD IY,(0FCC0H)  ; Main ROM slot
+   CALL 01CH       ; Interslot call
+   RET
+
+; --- Here is the relocation table ---
+
+ORGLOC: DW 0100H      ; Original address, also starting from 0100H
+
+RLCENT: DW RL0001+1   ; Relocation entry.
+   DW RL0002+1      ; List the addresses to be relocated.
+   DW RL0003+1      ; Operands for jump, load instructions, etc.
+   DW RL0004+1      ; Partial address.
+   DW RL0005+1
+   DW RL0006+1
+ENDRLC: DW 0          ; End of relocation table.
+                    ; 0 represents the end, so relocation
+                    ; 0 is not allowed in the entry.
+
+   END

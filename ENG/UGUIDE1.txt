@@ -1,0 +1,835 @@
+－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+UGUIDE1.DOC H-FORTH Ver1.4 User's Guide 1
+[Introduction]
+　Copyright(c) 1999 A.Hiramatsu (Akio Hiramatsu) 99/04/01
+－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+
+Part 1 Introduction
+
+Chapter 1 Welcome to the world of FORTH
+
+
+“What is FORTH?”
+
+FORTH is a programming language that was first created by a person named Moore. Mr. Moore actually wanted to name it FOURTH, meaning "fourth generation language," but due to the character limit of the assembler, he decided to name it FORTH.
+Since then, it has been enthusiastically supported by a small number (really a small number (^^; ) of language geeks) and has survived to this day (excuse me (^^;)).
+
+There is a language called "MIND" in software for MS-DOS, but it is also a FORTH family language. There is also "FIFTH", which seems to be the legitimate successor to FORTH, but it doesn't get talked about much, and I don't really know what kind of language it is.
+
+Now, H-FORTH is a new FORTH-based language that I created.
+There are already quite a few parts that are different from the original FORTH, but as long as it uses reverse Polish notation, I think it is still a FORTH language.
+
+There is another free software called "G-FORTH" that is a FORTH language for MSX, but I actually created that one as well. This is a work from when I was using the handle name "GUNDOH".
+H-FORTH is not source compatible with G-FORTH. This is because the language specifications have been changed to address aspects of G-FORTH that I felt were a bit difficult to use.
+Also, the internal structure of the program is so different that it can be said to be completely different. It is similar to the former Japanese Navy's "Shiden Kai" which was completely different from "Shiden". (I don't think anyone knows about that (^^;;;)
+
+
+
+"Reverse Polish notation"
+
+The biggest feature of the FORTH family of languages ​​is, of course, the "reverse Polish notation".
+
+Reverse Polish notation is a way of writing mathematical formulas, and is also called "postfix notation" because the operators come after the numbers. The way we usually write numbers is called "infix notation" because we write operators between numbers.
+
+For example, we usually
+
+ A+5
+
+The formula written as is in reverse Polish notation.
+
+ A 5 +
+ 
+I write this. It may seem strange at first glance, but if you read it as ``add A and 5,'' you will realize that it is not at all difficult to understand.
+
+(X-10)*(Y-20)
+
+Converting to reverse Polish notation, we get
+
+X 10 - Y 20 - *
+
+It becomes. If this is hard to understand
+
+(X 10 -) (Y 20 -) * 
+
+It will be easier to understand if you write . In other words, multiply "X minus 10" by "Y minus 20."
+
+By the way, in H-FORTH, conditional judgment expressions are also written in reverse Polish notation. For example, in normal writing
+
+A>10
+
+If the conditional expression written as is in reverse Polish notation, then
+
+A 10 >
+
+is. It's not that difficult, just read it as "A is greater than 10".
+
+The value of such a conditional expression is 1 if the condition is true, and 0 if it is not true.
+
+
+
+"stack"
+
+The key to understanding reverse Polish notation is the "stack".
+
+Most CPUs have a stack, but there is usually just one. FORTH has two stacks.
+It is easy to understand that FORTH is an assembler for a virtual CPU that has two stacks: a "parameter stack" and a "return stack." (In fact, it seems that Mr. Moore also developed such a CPU.)
+
+The return stack corresponds to the stack of a normal CPU, and the parameter stack corresponds to an accumulator, if I had to make an analogy. All calculations are done on the parameter stack.
+In FORTH, the parameter stack is the main character, and the return stack is behind the scenes. When programming, we rarely pay attention to the return stack. From now on, when we refer to simply "stack", we are referring to the parameter stack.
+
+Stack is also called "FILO" (First In Last Out). It looks like books and magazines stacked flat. Assume that only two operations are allowed on the stack: ``Pile something else on top'' or ``Take out something on top.''
+The first thing you put on the stack cannot be taken out unless you remove all the things that have been piled up since then. That's why it's called FILO.
+
+In H-FORTH, only 2-byte sized numbers can be stacked on the stack. To put numbers on the stack, simply list them in the source program. for example,
+
+   5 200 16384
+
+If you write , 5, 200, 16384 will be placed on the stack in this order. At this point, the bottom of the stack is 5, the middle is 200, and the top is 16384. By the way, the bottom of the stack is called the "bottom" and the top is called the "top."
+
+There are various ways to take out numbers from the stack, but I'll explain it using ., which is the easiest to understand. . is an instruction (word) that takes a number from the stack and displays it on the screen.
+
+   5 200 16384 . . .
+
+If you write , at runtime
+
+   16384 200 5
+
+should be displayed on the screen. You can understand why the order is reversed if you remember that "first in, last out." The first . takes out the last 16384 from the stack.
+
+Let's take a simple calculation as an example. Let's add 3 and 4 and display the result. In that case, the source program has
+
+   3 4 + .
+
+I write this. For the first 3 4, the numbers are placed on the stack in the order of 3 and 4. The following happens with the next +
+
+1) First, one number is taken from the stack (4 in this case)
+2) Another number is then retrieved (in this case 3)
+3) Then the total (7 in this case) is placed on the stack
+
+In other words, when + finishes executing, 3 and 4 disappear from the stack, and 7 remains on the stack. The next . takes 7 from the stack and displays it on the screen.
+
++ and . are called active words. On the other hand, 3, 4, 16384, and the constants and variables discussed later are called numeric words.
+A numeric word is a word that is put on the stack, and an active word is a word that does something on the stack. You can think of active words as equivalent to what are called commands, functions, and operators in other languages.
+
+
+
+"H-FORTH source program"
+
+The H-FORTH source program is written by separating words with delimiters such as half-width spaces, tabs, and new lines. Strictly speaking, a delimiter is a character whose character code is less than or equal to $20 in hexadecimal.
+
+Differences in how delimiters are written do not affect the logical structure of the program.
+for example,
+
+   A 10 < IF{ FUNC_1 }{ FUNC_2 }
+
+Even if you write
+
+   A
+   10
+   <
+   IF{
+      FUNC_1
+   }{
+      FUNC_2
+   }
+
+Even if you write , the compiler will output the same machine language. Unlike BASIC, there is no restriction such as ``IF is valid only until the end of the line.''
+
+If you want to include comments in the source program, surround them with /* and */ (delimiters are required before and after /* and */). That part has no bearing on the program's behavior. Annotations cannot be nested.
+
+
+
+"word"
+
+A word is a group of characters consisting of characters other than delimiters.
+Double quotes (character code $22) are not delimiters, but they have special treatment and can only be used at the beginning and end of a string constant word.
+
+The number of characters in the word must not exceed 31 half-width characters. However, this does not apply to string constant words.
+
+Users can define new words by combining predefined words. In fact, you can think of this as the essence of FORTH programming.
+
+When a user defines a word, the new word can be treated like any word already defined in the system.
+
+Basically, a word can only be defined once in one program. If a word with the same name already exists when creating a new word, an error will occur. (There is an exception for variables called local variables.)
+Also, when defining a new word, undefined words cannot be used in the definition content. However, immediate words can be used.
+
+There are the following types of words. The details will be explained in the next chapter.
+
+  type                     example
+
+・Numeric word
+  ・Immediate word
+    ・Numeric constants    9999 -32768 $FCC1 -$ABCD
+    ・Character constants  'A' 'BC' 'Kan'
+    ・String constant      "Hello World."
+　
+  ・Named numeric word
+    ・Constant
+      ・System defined constants    TRUE FALSE
+      ・User-defined constants
+
+    ·variable
+      ・System variables            _FREE _HL
+      ・User-defined variables
+        ・Simple variables
+        ・Array variables
+          ・Fixed array (integer type and byte type)
+          ・Variable array (integer type and byte type)
+      ・External variables (integer type and byte type)
+      
+・Active word
+  ・Compiled word
+    ・System defined words          + - * / .
+    ・User-defined word
+  ・Variable operation word         >> ARRAY>>
+  ・Compiler control word
+    ・Definition word               : VAR( CONST>> END
+    ・Compile switch                BREAKON STKCHKON
+    ・Constant data string          DATA(
+    ・Other                         ( ) [ ] INT: BYTE:
+  ・Execution control word
+    ・Branch syntax                 IF{
+    ・Loop syntax                   WHILE(
+    ・Loop syntax auxiliary word    BREAK CONTINUE      
+
+
+
+Chapter 2 Numerical words
+
+"Immediate word"
+
+The immediate word represents the number itself that is placed on the stack. Immediate words can be used without being defined. In other words, there is basically no "definition" for immediate words.
+Immediate words are further classified into numeric constants, character constants, and string constants.
+
+Decimal and hexadecimal numbers can be used for numerical constants. If it's in hexadecimal, add $ at the beginning.
+Please write the numerical value in half-width numbers. Full-width numbers are not considered numbers.
+In either decimal or hexadecimal format, you can make it a negative number by adding a - to the beginning.
+
+Numerical values ​​are processed using 2 bytes. The range that can be handled is -32768 to 32767 for signed numbers,
+If it is an unsigned number, it is 0 to 65535. Numbers themselves do not know whether they are signed or unsigned. It depends on the active word acting on the number. Below is an example where the same number is treated as signed and unsigned.
+
+   -32768 2 /    Result: -16384 (when treated as a signed number)
+
+   -32768 2 _/   Result: 16384 (when treated as an unsigned number)
+   
+A character constant is one or two half-width characters enclosed in ', and its character code is placed on the stack. If there are two characters, the first character is the low byte and the second character is the high byte.
+If you surround one full-width character with ', you will get a shift JIS code in which the upper and lower bytes are swapped, but it probably doesn't have much meaning.
+
+
+A string constant is a string enclosed in ", and the first address of that string is placed on the stack.
+In the compiled COM file, the character code 0 is added to the end of the string. The active word related to H-FORTH strings considers this character code 0 to be the end of the string.
+
+Exceptionally, there are no length restrictions for string constant words. Also, half-width spaces can be included in the middle.
+
+You can also include escape sequences similar to C language in the string. \n is a new line, \t is a tab, \0 is a character code of 0, and the two-digit hexadecimal number following \$ is a direct specification of a character code.
+ When you want to represent \ itself, use \\.
+ 
+If you want to break a line in the middle of a long string for reasons such as making the program list easier to read, or because the text editor you are using has a limit on the number of characters per line, cut the string with a "-" and move it to the next line. If you continue with the rest of the string, it will be considered one long string. You can split the string with "- as many times as you like.
+
+Example "This is a very long long string."
+
+↓
+
+   "This is a very"-
+   "long long string."
+
+"Constant" (named numeric word)
+
+A constant is a word name attached to a specific number, and its value does not change during execution. Once defined, it can be used like an immediate word.
+Additionally, there are constants TRUE and FALSE that are already defined in the system, and their respective values ​​are 1 and 0.
+
+To define a constant, do the following:
+
+   《Expression representing value》 CONST>> 《Constant name》
+
+For example:
+
+   $FD9F CONST>> H.TIMI
+
+   20 CONST>> ARRAY_X
+   10 CONST>> ARRAY_Y
+   ARRAY_X ARRAY_Y * CONST>> ARRAY_SIZE
+   
+
+
+"variable"
+
+Variables are numeric words whose values ​​can change during execution, and include system variables, user variables, and external variables.
+
+- System variables are used to know the current system status and to pass data when calling machine language routines or using VDP commands.
+
+-User variables are further divided into simple variables and array variables.
+   ・A simple variable can hold one integer type (2-byte size) value for each word name.
+   ・Array variables can hold multiple integer type or byte type (1 byte size) values ​​for each word name.
+
+- External variables allow memory outside H-FORTH to be handled as if it were a variable in H-FORTH. This allows easy access to the BIOS work area, for example.
+
+To assign a value to a variable,
+
+   《Expression representing the value to be assigned》 >> 《Variable name》
+
+is. However, in the case of array variables
+
+   《Expression representing the value to be assigned》 >> 《Variable name》 [ 《Expression representing index number》]
+
+is. Index numbers are based on 0. For example, for an array with 5 elements, you can use index numbers from 0 to 4.
+
+To put the value of a variable on the stack, just write the variable name if it is a system variable, simple variable, or external variable. If it is an array variable
+
+   《Variable name》 [ 《Expression representing index number》 ]
+
+is.
+
+"Declaring User Variables"
+
+User variables cannot be used unless they are declared in advance. A simple variable is declared as follows.
+
+   VAR(《Variable name list》)
+
+In "Variable name list", list the variable names you want to use, separating them with delimiters.
+
+Array variables are declared as follows.
+
+   ARRAY(《Type》 《Sequence of name and number of elements》)
+
+I write this. [Type] is INT: for integer type, BYTE: for byte type. 《Sequence of name and number of elements》 is
+
+   《Variable name 1》 《Number of elements of variable name 1》 《Variable name 2》 《Number of elements of variable name 2》...
+
+Write it like this. Only immediate non-string words or constants defined with CONST>> can be used to specify the number of elements. For example:
+
+   ARRAY( INT: A 10 B 20 )
+
+   256 CONST>> BUF_SIZE 37 CONST>> FCB_SIZE
+   ARRAY( BYTE: BUFFER BUF_SIZE FCB FCB_SIZE )
+
+   ARRAY( BYTE: C1 32 C2 32 INT: N1 16 N2 100 )
+
+You can declare integer type and byte type together as in the third example.
+
+
+
+"Variable array"
+
+There is a special type of array variable called a variable array. For variable arrays, the size (number of elements) of the array is not determined at compile time, but the start address and size are specified by the program at run time. A normal array that is not a variable array is called a fixed array.
+
+To create a variable array, declare the number of elements as 0 when declaring the array. And to specify the starting address and size of the variable array at runtime
+
+   《Start address》 《Size (in bytes)》 ARRAY>> 《Array variable name》
+
+will do. This specification can be changed any number of times during execution.
+
+Note that for variable arrays, the size must be specified in bytes even for integer types. For example, if the number of elements is 5, specify 10.
+This is because, according to my policy (lol), when it comes to variable arrays, I place more emphasis on ``how much space it occupies in memory'' than ``how many elements it has.'' .
+
+It is the responsibility of the programmer to specify the ``starting address'' and ``size''. If you use an address that overlaps with the MSX system work area or the program itself, there is a risk of runaway.
+Generally, it is allocated from within the user free area (from the address pointed to by the system variable _FREE to the address pointed to by _ENDFREE).
+
+Below is an example of the start address and size assignment.
+
+   ARRAY( BYTE: N 0 INT: M 0 )
+
+   _FREE       256 ARRAY>> N   /* Allocate 256 bytes from _FREE */
+                /* (Number of elements 256) */
+
+   _FREE 256 + 128 ARRAY>> M   /* Allocate 128 bytes from _FREE+256 */
+                /* (number of elements 64) */
+
+
+
+"Local variable"
+
+Variables declared outside of word definitions are called global variables and can be referenced throughout the program. On the other hand, variables declared within a word definition are called local variables and can only be referenced within that word. Local variables may have the same name as local variables in other words.
+
+Local variables are created at fixed addresses in memory. In other words, the storage class in C language is static. Please note that it is not auto.
+
+Below are examples of local variables.
+
+   VAR( X Y ) /* This is a global variable */
+	
+   : FUNC_1
+   VAR( A B ) /* Local variable valid only within FUNC_1 */
+	
+   ;
+	
+   : FUNC_2
+   VAR( A B ) /* Local variable valid only in FUNC_2 */
+	
+   VAR( X ) /* This is the same as a global variable, so */
+          /* Error occurs */
+	
+   ;
+   
+
+
+"Obtain variable address"
+
+   & "Variable name"
+
+You can find out the starting address of the variable. For array variables, write only the array variable name. Index number cannot be specified
+Note that the word & is used not only to obtain variables but also to obtain the execution address of the compiled word.
+
+
+"Declaration of external variables"
+
+The external variable is
+
+   EXTVAR(《Type》《Name and address sequence》)
+
+Write and declare as follows. Type is BYTE: or INT:. 《Name and address sequence》
+
+  《Variable name 1》 《Address of variable name 1》 《Variable name 2》 《Address of variable name 2》...
+
+Write it like this. Please write the address using numerical constants. for example,
+
+   EXTVAR( BYTE: CSRY $F3DC CSRX $F3DD )
+
+If you write this, you can use CSRX and CSRY (cursor position) in the BIOS work area as if they were H-FORTH variables.
+
+
+
+Chapter 3 Compiled word (active word)
+
+Compiled words are words that mainly manipulate numbers on the stack. Some are already defined by the system and some are defined by the user.
+
+This chapter provides an overview of typical system-defined compiled words. Please refer to the reference guide for details. In addition, we will discuss words specialized for MSX in Part 2.
+
+
+"Arithmetic words"
+
++ - * / _/ AND OR XOR
+
+   Both are words that take two numbers from the stack and place the result of the operation on the stack.
+
+Example  3 4 + 5 *       Result: 35
+   $AAAA $FF OR $F000 XOR    Result: $5AFF
+
+NEG CPL ABS
+
+   A word that takes out a number from the stack and places the result of the operation on the stack.
+
+Example 100 NEG Result: -100
+   $AAAA CPL Result: $5555
+
+
+"Comparative words"
+
+= <> < > >= <= _< _> _<= _>=
+
+   In both cases, two numbers are taken from the stack and compared, and if the condition is met, 1 is placed on the stack, and if not, 0 is placed on the stack. Words starting with _ treat numbers as unsigned.
+
+Example 100 10 > Result: 1
+   -1 1 _<    Result: 0 (Compare as unsigned. Same as $FFFF 1 _<.)
+   
+"Console word"
+
+.
+
+   Takes one number from the stack, treats it as a signed number, and displays it on the screen in decimal.
+
+H.
+
+   Takes one number from the stack, treats it as an unsigned number, and displays it on the screen as a 4-digit hexadecimal number.
+
+CRLF SPACE
+
+   Line breaks and half-width spaces are displayed.
+
+STR.
+
+   Takes one number from the stack, treats it as the first address of the string, and displays it on the screen until character code 0 appears.
+
+"Memory manipulation words"
+
+C@
+
+   Takes a number from the stack, uses it as a memory address, reads 1 byte from memory, and puts that value on the stack. Corresponds to BASIC's PEEK().
+
+C!
+
+   Take out two numbers from the stack. The first value retrieved is set as the memory address, and the second value retrieved is written 1 byte to that address. Corresponds to POKE in BASIC.
+
+@ !
+
+   Each is a 2-byte version of C@ C!
+
+Example 1 $8000 C! 1 is written to address $8000.
+   $8000 C@ Read address $8000 and place the value on the stack.
+   $1234 $9000 ! $34 is written to address $9000 and $12 is written to address $9001.
+   $9000 @ Read 2 bytes from address $9000 and place the value on the stack.
+
+MEMMOVE
+
+   Removes three values ​​from the stack. The first value retrieved is treated as the destination address, the second value retrieved as the number of bytes to be transferred, and the third value retrieved as the source address, and transferred in memory.
+
+Example $8000 256 $9000 MEMMOVE Transfer 256 bytes from address $8000 to address $9000.
+
+
+"Words related to string manipulation"
+
+  In H-FORTH, character code 0 is added at the end of the character string. If you use a string manipulation word for an incomplete string that does not have a 0 added at the end, you must be careful because it will not stop until a 0 is found.
+  Also, for STRMOVE, STRCAT, etc., the destination of the result must be an area that is large enough to store the string and is safe even if it is rewritten. Areas that are safe to be rewritten are array variables or user-free areas.
+
+STRLEN
+
+   Assuming that the value taken from the stack points to the first address of the string, check the length of the string and place it on the stack.
+
+Example "ABCDE" STRLEN Result: 5
+
+STRMOVE
+
+   Takes two values ​​from the stack. Transfer is performed by assuming that the first value retrieved is the destination address and the second value is the address of the source string.
+
+Example "XYZ" $8000 STRMOVE Transfers the string "XYZ" to address $8000.
+
+STRCAT
+
+   Takes two values ​​from the stack. Transfers the string pointed to by the first retrieved value to the end of the string pointed to by the second retrieved value and concatenates it.
+
+Example "ABC" $8000 STRMOVE /* First transfer "ABC" to address $8000 */
+   $8000 "DEF" STRCAT /* Join "DEF" to "ABC" at address $8000 */
+   $8000 STR. /* Display results. It should display ABCDEF */
+
+
+"Stack manipulation words"
+
+DUP
+
+   Copies the value at the top of the stack and puts it on the stack. For example, 5 DUP is the same as 5 5.
+
+OVER
+
+   Copy the second value from the top of the stack and place it on the stack. For example, 5 10 OVER is the same as 5 10 5.
+
+SWAP
+
+   Swap the top value of the stack with the second value. For example, 3 4 SWAP is the same as 4 3.
+
+DROP
+
+   Discard the top value of the stack without using it. A common example is when you only need the first address of a data string created with DATA( ) and don't need the total number of bytes, use this to discard the total number of bytes.
+
+Example   DATA( BYTE: 1 2 3 4 5 ) DROP >> DATA_ADDRESS
+
+
+
+Chapter 4 Variable manipulation words
+
+  A variable manipulation word is literally a word that manipulates a variable, followed by the name of the variable to be manipulated as an operand.
+  There are two variable manipulation words: >> and ARRAY>>, which have already appeared.
+
+
+
+Chapter 5 Compiler control word (active word)
+
+  The compiler control word gives instructions to the compiler. Start/end of word definition, declaration of variables and constants, etc. CONST>>, VAR(, and ARRAY() that have appeared so far also fall into this category.
+
+
+"Word Definition"
+
+  To define a new word, use the word : ; and write it as follows.
+
+   : 《New word name》 《Definition contents》;
+   
+Also, if that word takes parameters from the stack, use the word PARAM( and
+
+   : 《New word name》 PARAM( 《Parameter list》) 《Definition contents》;
+
+Write it like this.
+
+You cannot use a word name that has already been defined as ``new word name''. Also, the only words that can be used in ``Definition Contents'' are defined words or immediate words.
+
+In 《Parameter list》, list the parameter variable names to be imported. Then, a local variable called a parameter variable is automatically created, and the parameter variable is loaded from the stack. Parameter variables are the same as ordinary local variables after the parameters have been imported, so they can be assigned.
+
+As an example, let's create a word that calculates the average of two numbers.
+
+   : AVERAGE PARAM( X Y ) X Y + 2 / ;
+
+AVERAGE is the new word name. From PARAM( X Y ) we see that this word takes two parameters X and Y from the stack. X Y + 2 / is the definition and means "add X and Y and divide by 2."
+
+For example, to display the average of 123 and 456 using this word,
+
+   123 456 AVERAGE.
+
+All you have to do is write.
+
+Of course, it is also possible to include an execution control word in the word definition. The following example is a word that displays numbers from 1 to a specified number. We will discuss the execution control word in detail later, so we will only give an example here.
+
+   : PRINT_1_N PARAM( N )
+   VAR(I)
+	
+   1 >> I
+   WHILE( I N <= ){
+   I.
+   I 1 + >> I
+   }
+   ;
+   
+"Compile switch"
+
+In the loop syntax, specify whether to detect the following events.
+
+   ・Interrupting the program with CTRL-STOP BREAKON BREAKOFF
+   ・Parameter stack error STKCHKON STKCHKOFF
+
+Parameter stack errors include stack overflow (overloading), and forgetting to load or remove numerical values ​​during a loop (the value of the stack pointer is different each time the loop goes through).
+
+When these words are written in the source program, the words defined after that will become effective. Do not write it inside a word definition.
+Both are detected when ON and not detected when OFF. Default is ON. It is best to turn it off after debugging is complete.
+
+
+"Constant data string"
+
+There is a word DATA( to place a constant data string in a program. Use it as follows.
+
+   DATA(《Data arrangement》)
+
+What can be written in the ``data array'' are immediate words (including character strings), constants defined with CONST>>, word addresses with & ``word name'', and BYTE: and INT:.
+If you write BYTE:, the data after that will be 1 byte size, and if you write INT:, the data after that will be 2 byte size.
+
+ for example,
+
+   DATA( BYTE: $12 $34 $56 INT: 1 2 3 )
+
+is in memory
+
+   $12 $34 $56 $01 $00 $02 $00 $03 $00
+
+It becomes.
+
+When DATA( is closed with ), the first address of the data string is placed on the stack, followed by the total number of bytes of the data string. The accumulated value can be used as a parameter for MEMMOVE or LDIRVM.
+
+Also, for example
+
+   ARRAY( INT: INIT_DATA 0 )
+
+You can also declare a variable array as follows, and use the following to convert the constant data string into an array.
+
+   DATA( INT: 1 2 3 4 5 ) ARRAY>> INIT_DATA
+
+From version 1.3, it is now possible to write string constants in constant data strings. The string will be embedded as is.
+However, the character code 0 at the end is not added to the character string in the constant data string. This is because we thought that trailing zeros might get in the way in some cases. For example, you may want to write a string of exactly known length.
+If you need a trailing 0, please explicitly enter the character code 0 as shown below.
+
+   DATA( "STRING DATA\0" )
+   
+String constants in constant data columns do not change the INT:/BYTE: state. for example,
+
+   DATA( INT: 1 2 "ABC" 3 4 )
+
+If you write
+
+   $01 $00 $02 $00 $41 $42 $43 $03 $00 $04 $00
+   ~~~~~~~ ~~~~~~~ ~~~~~~~~~~~ ~~~~~~~ ~~~~~~~
+   1       2       "ABC"       3       4
+
+It becomes.
+
+
+"Specify main word"
+
+At the end of the source program,
+
+   END《Main word name》
+
+I will write ``Main word name'' is the word that is executed first in a compiled program.
+
+A COM file will not be created unless this END (main word name) is written in the source program.
+
+
+Chapter 6 Execution Control Word
+
+Execution control words are words that control the flow of program execution, such as branches and loops.
+
+
+"Branch syntax"
+
+Branching syntax is used to change the flow of program processing depending on conditions. There are three ways to write it:
+
+Type 1《Condition》 IF{《Processing》}
+
+Type 2《Condition》 IF{《Processing 1》}{《Processing 2》}
+
+Type 3《Condition 1》 IF{《Processing 1》}{
+         《Condition 2》 IF{ 《Processing 2》 }|
+         《Condition 3》 IF{ 《Processing 3》 }|
+             Continued below
+         《Condition i》 IF{ 《Processing i》 }|
+             Continued below
+         《Condition n》 IF{ 《Processing n》 }|《Processing n+1》 }
+
+
+In type 1, ``processing'' is executed only when ``condition'' is met, and if not, ``processing'' is skipped.
+
+In type 2, "Processing 1" is executed when the "Condition" is met, and if it is not met, "Processing 2" is executed.
+
+Type 3 is evaluated in order starting from "Condition 1", and only "Processing i" corresponding to the first "Condition i" that is satisfied is executed. If all conditions from ``Condition 1'' to ``Condition n'' are not met, ``Processing n+1'' is executed. Please note that ``processing'' is concluded with }{ at the beginning, }| at the second and subsequent ones, and } at the end.
+
+Here is an example of branching syntax.
+
+   X 256 < IF{ X 1 + >> X }
+
+In this example, if variable X is less than 256, add 1 to X.
+
+   AGE 20 >= IF{
+      "You can drink beer." STR.
+   }{
+      "You can't drink beer." STR.
+   }
+
+In this example, if the variable AGE is 20 or more, "You can drink beer." will be displayed, otherwise "You can't drink beer." will be displayed.
+
+   KEY 'E' = IF{ Y 1 - >> Y }{
+   KEY 'S' = IF{ X 1 - >> X }|
+   KEY 'D' = IF{ X 1 + >> X }|
+   KEY 'X' = IF{ Y 1 + >> Y }|
+   }
+
+This example increases or decreases the values ​​of X and Y depending on the value of the variable KEY.
+
+
+(For reference: If you want to actually execute this example with HFORTH.COM, you will need to add the following program statement.)
+
+VAR( KEY X Y )
+10 >> X
+10 >> Y
+'X' >> KEY
+
+: MAIN
+KEY 'E' = IF{ Y 1 - >> Y }{
+KEY 'S' = IF{ X 1 - >> X }|
+KEY 'D' = IF{ X 1 + >> X }|
+KEY 'X' = IF{ Y 1 + >> Y }|
+}
+CRLF
+"X: " STR. X . CRLF
+"Y: " STR. Y . CRLF
+;
+
+MAIN
+
+(End of reference)
+
+
+"Loop syntax"
+
+ Loop syntax repeats the process while the condition is met. There are three ways to write it:
+
+ Type 1    WHILE(《condition》){《processing》}
+
+ Type 2    { 《Processing》 《Condition》 }WHILE
+
+ Type 3    { 《Processing》 }
+
+
+   Type 1 is called a prejudgment type loop, which first evaluates the "condition" and repeatedly executes the "process" while the condition is true. If the ``condition'' is not met from the beginning, the ``process'' will never be executed.
+
+   Type 2 is called a post-judgment type loop, which first executes the ``process'', then evaluates the ``condition'', and repeatedly executes the ``process'' as long as it is true. In any case, ``processing'' is executed at least once.
+
+   Type 3 is a so-called infinite loop, which repeats the process over and over again.
+
+ An example is given below.
+
+   1 >> I             /* The initial value of I is 1 */
+   WHILE( I N <= ){   /* Repeat as long as I is less than or equal to N */
+     I .              /* Display I */
+     I 1 + >> I       /* Add 1 to I */
+   }
+
+ This example displays 1 through N.
+
+   {
+     CHGET >> KEY     /* Enter one character and assign it to KEY */
+     KEY CHPUT        /* Output one character of KEY value */
+     KEY $0D <>       /* Repeat if KEY value is other than $0D (return key) */
+   }WHILE
+   
+ In this example, the character corresponding to the pressed key will continue to be displayed until the return key is pressed.
+
+   { '*' CHPUT }
+
+ In this example, the asterisk will continue to be displayed.
+
+ While executing these loop constructs, if CTRL-STOP is pressed, execution will be interrupted and the program will return to DOS. (If BREAK is enabled. BREAK is enabled by default.)
+
+
+"Loop Syntax Auxiliary Word"
+
+  CONTINUE and BREAK are words that help with loop syntax. CONTINUE returns to the beginning of the loop. BREAK exits the loop. For example:
+  
+   0 >> I /* Initial value of I 0 */
+   WHILE( I 5 < ){ /* Repeat as long as I is less than 5 */
+     CHGET >> KEY /* Enter one character */
+     KEY 'A' < IF{ CONTINUE } /* If smaller than 'A', try again */
+     KEY 'Z' > IF{ CONTINUE } /* If larger than 'Z', try again */
+	    
+     KEY CHPUT /* Output one character of KEY */
+     I 1 + >> I /* Add 1 to I */
+   }
+
+In this example, enter 5 alphabetic characters. If a non-alphanumeric character is entered, CONTINUE returns to the beginning of the loop.
+
+
+   {
+     "\nHit Y or N : " STR. /* Display message */
+     CHGEY >> KEY /* Enter one character */
+     KEY 'Y' = IF{ BREAK } /* If 'Y', exit the loop */
+     KEY 'N' = IF{ BREAK } /* If 'N', exit the loop */
+     '?' CHPUT /* Otherwise display '?' */
+   }
+
+In this example, enter 'Y' or 'N'. If you input one character and get 'Y' or 'N', you can exit the loop by BREAK. Otherwise, display '?' and enter again.
+
+
+
+Chapter 7 Summary of Part 1
+
+
+ This is an example problem to conclude Part 1. We will use a method called ``Sieve of Eratosthenes'' to find the prime numbers from 1 to 1000.
+
+-------------------------------------------------- ------------ SOSUU.4TH ---
+
+ARRAY( BYTE: MARK 1001 ) /* Marking array */
+
+/* --- Definition of word to erase marks of multiples of N --- */
+
+: UNMARK PARAM( N )   /* Word name is UNMARK, parameter is N */
+VAR( I )           /* Local variable I only valid in UNMARK */
+
+N 2 * >> I         /* The initial value of I is N*2 */
+WHILE( I 1000 <= ){      /* Repeat for I<=1000 */
+    FALSE >> MARK [ I ]  /* Set mark I to FALSE (0) */
+    I N + >> I           /* Add N to I */
+}                  /* Loop ends here */
+;                  /* End of definition of word UNMARK */
+
+
+/* --- Main word definition --- */
+
+: MAIN            /* Word name is MAIN, no parameters */
+VAR( I )          /* Local variable I only valid in MAIN */
+
+"\nFind prime numbers from 1 to 1000!!\n" STR. /* Display message */
+
+1 >> I
+WHILE( I 1000 <= ){        /* from 1 to 1000, */
+    TRUE >> MARK [ I ]     /* Set all MARK to TRUE (1) */
+    I 1 + >> I
+}
+
+2 >> I
+WHILE( I 1000 <= ){        /* From 2 to 1000, */
+    I UNMARK               /* Call word UNMARK */
+    I 1 + >> I
+}
+
+1 >> I
+WHILE( I 1000 <= ){        /* from 1 to 1000 */
+    MARK [ I ] IF{ I . }   /* Display I if MARK is not 0 */
+    I 1 + >> I
+}
+"\nWhat's up!!" STR.       /* Display end message */
+;
+END MAIN /* End of source program, specify main word */
+
+-------------------------------------------------- --------------------------

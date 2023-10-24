@@ -1,0 +1,652 @@
+－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+UGUIDE2.DOC H-FORTH Ver1.4 User's Guide 2
+[Intermediate version]
+   Copyright(c) 1999 A.Hiramatsu (Akio Hiramatsu) 99/04/01
+－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+
+Part 2    Intermediate edition
+
+ In the second part, we will discuss the parts of H-FORTH that are especially specialized for MSX.
+
+
+Chapter 1 Native code call
+
+The function that calls Z80 machine language routines is called native code call.
+There are three words for this: CALL BIOS BDOS.
+
+   <<Address you want to call>>       CALL calls the address specified on the current memory map.
+   <<BIOS address you want to call>>  Call BIOS (main ROM) in BIOS.
+   <<Function number>>                Execute DOS function calls with BDOS.
+
+The following system variables called CPU register variables are provided to pass the values ​​of CPU registers when making native code calls.
+
+   _F _A _B _C _D _E _H _L
+   _BC _DE _HL _IX _IY
+
+When you assign the values ​​you want to pass to the CPU to these variables and make a native code call, the values ​​are loaded into the CPU's registers and the target routine is called. When the routine returns, the current CPU register values ​​are assigned to these variables. (However, _IX and _IY are invalid when using BIOS.)
+
+_B _C and _BC, _D _E and _DE, _H _L and _HL are assigned to the same address. In other words, it is a union in the C language. for example,
+
+   $12 >> _B $34 >> _C
+
+and,
+
+   $1234 >> _BC
+
+The result is the same.
+
+An example is given below.
+
+   $4000 >> _HL $24 CALL       Put $4000 into the HL register and call address $24.
+				
+   5 >> _A $5F BIOS            Put 5 in the A register and call address $5F in the BIOS.
+	
+   $8000 >> _DE $0F BDOS       Put $8000 in DE register and execute DOS function call number $0F.
+   _A .                        Displays the value of the A register after execution.
+
+
+CNVFCB is a useful word when using DOS function calls. This converts the file name to DOS FCB format (1 byte drive name + 8 bytes file name + 3 bytes extension).
+Although this function is not necessary in a DOS2 environment, I think there are many people who use MSX2/2+ in a DOS1 environment.
+
+This word is
+
+   《Conversion source file name》 《Address to transfer the conversion result》 CNVFCB
+
+It is used by writing. The wildcard '*' expands to '?'. After execution, the number of characters successfully converted is placed on the stack. If no conversion is possible, 0 is accumulated.
+
+Please note that the 12 bytes from the transfer destination address will be rewritten regardless of whether the conversion is successful or not.
+
+An example of conversion is given below.
+
+Example 1      "ABC.TXT" $8000 CNVFCB
+
+                ↓
+
+         8000   00 41 42 43 20 20 20 20 20 54 58 54
+                ~~ ~~~~~~~~~~~~~~~~~~~~~~~  ~~~~~~
+                ↑      File name             Extension
+                Drive number (default drive is 0)
+      After execution, 7 (length of "ABC.TXT") is placed on the stack.
+
+
+Example 2       "B:DEF*.BIN" $8000 CNVFCB
+
+                 ↓
+
+         8000    02 44 45 46 3F 3F 3F 3F 3F 42 49 4E
+                 ~~ ~~~~~~~~~~~~~~~~~~~~  ~~~~~~~~~
+                 ↑      ↑               Extension
+                 ｜      File name ('*' is expanded to '?' ($3F))
+                 Drive number (B drive is 2)
+      After execution, 10 (length of "B:DEF*.BIN") is placed on the stack.
+
+
+
+Chapter 2   Extended Console Routines
+
+ By default, H-FORTH performs character input/output using BIOS CHGET ($9F) and CHPUT ($A2), but user-created routines can be used instead.
+
+ The system variables _XCHGET and _XCHPUT contain 0 by default, but if you enter the start address of a user-created routine here, the user's routine will be called without calling the BIOS.
+ A possible application example would be outputting characters to a graphic screen.
+
+ The user routine can be any routine as long as the one-character input routine puts the input character code in the A register and returns, and the one-character output routine outputs the character code in the A register. does not matter.
+ Register saving is done on the H-FORTH side, so there is no need to be particularly aware of it.
+
+ Below is an example of outputting one character using a DOS function call instead of the BIOS.
+
+   : SET_BDOS_CHPUT
+   DATA( BYTE:
+      $5F         /* LD E,A */
+      $0E $02     /* LD C,02H */
+      $CD $05 $00 /* CALL 05H */
+      $C9         /* RET */
+   ) DROP       /* The number of bytes is not needed, so throw it away */
+   >> _XCHPUT
+   ;
+
+   : MAIN
+   SET_BDOS_CHPUT  /* Switch to user routine */
+
+   {
+      "\nOUTPUT BY BDOS." STR.
+   }
+   ;
+   END MAIN
+
+
+
+Chapter 3   I/O port access
+
+ H-FORTH has a word that directly accesses the I/O port. The MSX standard prohibits I/O port access other than VDP, so I didn't intentionally add it when I made G-FORTH, but since turboR, ASCII has been doing it myself, and recently I've been making my own hardware. As the number of users is increasing, we have added these to make it easier to create drivers for your own hardware.
+
+   《Value to write》 《I/O port address》 P!
+
+ Write with,
+
+   《I/O port address》 P@
+
+ It is loaded.
+
+
+
+Chapter 4   VDP access
+
+
+"Page selector"
+
+ H-FORTH has three page selectors: lead page, light page, and display page. Select the page to read from VRAM, the page to write to VRAM, and the page to display on the screen.
+
+ The following three system variables are page selectors.
+
+   _RPG     READ page
+   _WPG     WRITE Page
+   _DPG     display page
+
+ Read pages and Write pages become effective simply by assigning them to system variables. To switch the display page, execute the word SETDPG after the assignment.
+
+ The page size varies depending on the screen mode. For screens 6 and below, each page is 32K bytes, and for screens 7 and above, each page is 64K bytes. The current screen mode is determined from the BIOS work area SCRMOD (address $FCAF).
+
+ For screens below 4, display pages cannot be switched using _DPG and SETDPG. Operate the VDP register if necessary.
+
+An example is given below.
+
+   5 >> _A $5F BIOS /* Set to screen 5 with BIOS call */
+   3 >> _DPG SETDPG /* Display page 3 */
+   3 >> _WPG        /* Set light page to 3 */
+   $FF $1234 VC!    /* Write $FF to address $1234 on page 3 */
+         /* (The absolute address of VRAM is $19234) */
+
+   1 >> _RPG        /* Set lead page (transfer source page) to 1 */
+   2 >> _WPG        /* Set the light page (destination page) to 2 */
+   10 >> _SX 20 >> _SY  /* Transfer source start coordinates = ( 10 , 20 ) */
+   30 >> _NX 40 >> _NY  /* Rectangular area size = ( 30 , 40 ) */
+   50 >> _DX 60 >> _DY  /* Transfer destination coordinates = ( 50 , 60 ) */
+   0 >> _LOG        /* Logical operation = PSET */
+   LMMM             /* Execute transfer */
+
+
+"VDP register access"
+
+ To write to the VDP register,
+
+  《Value to write》 《Register number》 VDP!
+
+ is. Please note that unlike BASIC's VDP( ), the register numbers after number 8 do not shift.
+ The written values ​​will now be saved in the BIOS work area. To read the value, execute function call $0F as shown below.
+
+   《Register number》 VDP@
+
+ Reading the VDP status register is as follows.
+
+   《Status register number》 VDPS@
+
+ Writing to the palette register is
+
+   《Palette value》 《Palette number》 PAL!
+
+ is. 《Palette value》 is green x 256 + red x 16 + blue. It would be easier to understand if written in hexadecimal. For example, skin tones of red 7, green 6, and blue 4 cost $674.
+
+ You can also set all palettes at once.
+
+   《Palette data address》 SETPAL
+
+Then, 32 bytes from the "palette data address" in memory are sent to the palette register.
+
+
+"VRAM access"
+
+   《Value to write》 《VRAM address》 VC!
+
+ Write 1 byte with
+
+   《Value to write》 《VRAM address》 V!
+
+ You can write 2 bytes with .
+
+   《VRAM address》 VC@
+
+ Read 1 byte with
+
+   《VRAM address》 V@
+
+ You can read 2 bytes with .
+
+   《Memory address》 《Number of bytes》 《VRAM address》 LDIRVM
+
+ Block transfer from memory to VRAM,
+
+   《VRAM address》 《Number of bytes》 《Memory address》 LDIRMV
+
+ You can transfer blocks from VRAM to memory.
+
+   《Value to write》 《Number of bytes》 《VRAM address》 FILVRM
+
+ You can fill VRAM with the same value.
+
+
+"Wait for vertical period"
+
+   《Number of times to wait》 VSYNC
+
+ Waits for the specified number of vertical cycles. It can be used to synchronize vertical periods in action games, etc., or simply to make a certain amount of time elapse.
+
+
+"VDP command"
+
+ To use the VDP command, first assign the necessary values ​​to the system variables called VDP command variables below. The values ​​of these variables are written to the appropriate VDP registers when executing the VDP command word.
+
+   _SX  Reading start X coordinate (corresponds to R#32,33 of VDP)
+   _SY  Reading start Y coordinate ( R#34,35 )
+   _DX  Write start X coordinate ( R#36,37 )
+   _DY  Writing start Y coordinate ( R#38,39 )
+   _NX  Number of dots in the X direction ( R#40,41 )
+   _NY  Number of dots in Y direction ( R#42,43 )
+   _COL Color to write ( R#44 )
+   _ARG Transfer direction, etc. ( R#45 )
+   _LOG logical operation (corresponds to the lower 4 bits of R#46)
+
+ The values ​​of _SY and _DY are not written to VDP as they are, but are affected by the read page and write page. Specifically, the value obtained by multiplying _RPG by 256 is added to _SY, and the value obtained by multiplying _WPG by 256 is added to _DY.
+
+ Also, the value assigned to _ARG (corresponding to R#45) is actually valid only for the SRCH command. For other commands, the value of R#45 is automatically determined from the sign and magnitude relationship of _NX and _NY, so there is no need to set it.
+ For commands other than SRCH, if the value of _NX is negative, bit 2 (DIX) of R#45 is set. Bit 3 (DIY) is set if the value of _NY is negative. Also, bit 0 (MAJ) is set if the absolute value of _NY is greater than or equal to the absolute value of _NX.
+
+ VDP command variables are guaranteed to be contiguous in memory in the above order. Therefore, it is also possible to set them all at once using DATA( ) and MEMMOVE. For example:
+
+   DATA( INT:
+         0   0      /* _SX , _SY */
+       128 100      /* _DX , _DY */
+        64  64      /* _NX , _NY */
+         BYTE:
+             0      /* _COL */
+             0      /* _ARG */
+             0      /* _LOG */
+  ) & _SX MEMMOVE   /* Transfer to address after _SX */
+
+ VDP command words include the following.
+
+   LMMC   Logical rectangle transfer from memory to VRAM (for screens 5 and 7) *1
+   LMCM   Logical rectangle transfer from VRAM to memory (for screens 5 and 7) *1
+   LMMC8  Logical rectangle transfer from memory to VRAM (for screens 8 or higher) *1
+   LMCM8  Logical rectangle transfer from VRAM to memory (for screens 8 and above) *1
+   LMMM   Logical rectangle transfer on VRAM
+   LMMV   Logical rectangle filling on VRAM
+   HMMC   High-speed rectangular transfer from memory to VRAM*1
+   HMMM   High-speed rectangular transfer on VRAM
+   HMMV   High-speed rectangular filling on VRAM
+   LINE   Straight line drawing
+   PSET   Pointillism
+   POINT  Check the color of the specified point *2
+   SRCH   Search specified color horizontally*2
+
+ Words with *1 give memory addresses from the stack. Also, for words with *2, the execution results are placed on the stack.
+
+ Below are examples of VDP commands.
+
+   200 >> _DX 100 >> _DY    /* Writing start point */
+  -128 >> ​​_NX               /* Length in X direction */
+   -64 >> _NY               /* Length in Y direction */
+    15 >> _COL              /* Color code=15 */
+     0 >> _LOG              /* Logical operation=PSET */
+   LINE
+
+ This example is the same as executing LINE(200,100)-STEP(-127,-63),15 in BASIC. What you need to be careful about is that BASIC's STEP() specifies the difference in coordinate values, whereas setting _NX _NY is the number of dots to be drawn. In other words, the absolute value of the value set to _NX _NY is 1 more than STEP().
+
+    0 >> _DX 0 >> _DY       /* Writing start point */
+   64 >> _NX 64 >> _NY      /* Transfer amount = 64 x 64 dots */
+    8 >> _LOG               /* Logical operation=TPSET */
+   $8000 LMMC               /* Transfer source address is $8000, transfer execution */
+
+ In this example, the data starting from address $8000 in memory is transferred to the rectangular area (0,0)-(63,63) on VRAM. You can think of it as equivalent to COPY (array) TO (coordinates) in BASIC.
+
+   128 >> ​​_SX 100 >> _SY    /* Search start point */
+    10 >> _COL              /* Search color code=10 */
+     0 >> _ARG              /* Search direction is right, search mode is 0 */
+   SRCH >> POSX             /* Execute search, assign result to POSX */
+
+ In this example, we look for color code 10 from (128,100) to the right. The word SRCH puts the X coordinate of the specified color on the stack if it is found. If not found, set -1.
+ The value set in _ARG is bit 2 is the search direction (0 = right, 1 = left), and bit 1 is the search mode (0 = search for the specified color, 1 = search for colors other than the specified color).
+
+ The VDP command word can be said to be almost a bare VDP operation, except for some modifications to _SY, _DY, _ARG, etc. Therefore, if you do not understand VDP itself, you will not be able to fully utilize it.
+ This document is not a manual for VDP, so we will refrain from explaining VDP itself.
+ Regarding the functions of VDP itself, we recommend that you carefully read the manuals such as MSX-Datapack.
+
+
+
+Chapter 5   Extended runtime library
+
+ H-FORTH's functionality can be expanded with an extended runtime library. It has a fancy name like "Extended Runtime Library", but it's not that big of a deal. It simply defines the format of relocatable machine language files.
+
+ Since it seems long, I will refer to the Extended Runtime Library as XRL from now on.
+
+ Unfortunately, XRL cannot be created with H-FORTH at this time. Create everything using assembler.
+
+ The basic way to use XRL is to load the XRL file into the user free area using a DOS function call, and relocate it using the word RELOCATE. Then, use the machine language routine in XRL by calling it with CALL.
+
+ Since XRL can be relocated, it will not be affected even if the starting address of the user free area changes. (Of course, the main premise is that the free area is wider than the XRL file size.)
+
+
+"Create an XRL file"
+
+ The format of the XRL file is as follows.
+
+ Offset Size              Name        Contents
+
+    0    2                XRLID       File ID $58,$52 (Character code of "XR")
+    2    2                ROFS        relocation table offset
+    4   Variable length   XRLBDY      XRL machine language routine body
+  ROFS   2                ORGLOC      Original address before relocation
+ ROFS+2 Variable length   RLCENT      relocation entry (total number of bytes is n)
+ ROFS+2+n    2            ENDRLC      $0000 , representing the end of the relocation table
+
+ The first 4 bytes are called the header, the XRLBDY part is called the body, and the part after ORGLOC is called the relocation table.
+
+   ASEG
+   ORG 0100H
+
+XRLID: DB 'XR'
+ROFS:  DW ORGLOC-0100H      ; Offset from address 0100H
+
+; --- From here comes the body, that is, the main body of the machine language routine ---
+
+XRLBDY:             ; There's no need to label it like this (^^;
+
+REGSEL: DB 0        ; Area for exchanging data with H-FORTH
+REGDAT: DB 0        ; Same as above
+
+RDPSG:
+RL0001: JP XRDPSG   ; Entrance of call from H-FORTH
+WRPSG:
+RL0002: JP XWRPSG   ; Same as above
+
+; As mentioned above, it is wise to place the area where data is exchanged and the call entrance together at the beginning of the body. Even if the version of the machine language routine changes, the program on the H-FORTH side does not need to be modified.
+
+XRDPSG:
+RL0003: LD A,(REGSEL) ; Register number
+   LD IX,096H      ; BIOS RDPSG address
+   LD IY,(0FCC0H)  ; Main ROM slot
+   CALL 01CH       ; Interslot call
+RL0004: LD (REGDAT),A ; Result
+   RET
+
+XWRPSG:
+RL0005: LD A,(REGDAT) ; Data to write
+   LD E,A
+RL0006: LD A,(REGSEL) ; Register number
+   LD IX,093H      ; BIOS WRTPSG address
+   LD IY,(0FCC0H)  ; Main ROM slot
+   CALL 01CH       ; Interslot call
+   RET
+
+; --- Here is the relocation table ---
+
+ORGLOC: DW 0100H      ; Original address, also starting from 0100H
+
+RLCENT: DW RL0001+1   ; Relocation entry.
+   DW RL0002+1      ; List the addresses to be relocated.
+   DW RL0003+1      ; Operands for jump, load instructions, etc.
+   DW RL0004+1      ; Partial address.
+   DW RL0005+1
+   DW RL0006+1
+ENDRLC: DW 0          ; End of relocation table.
+                    ; 0 represents the end, so relocation
+                    ; 0 is not allowed in the entry.
+
+   END
+
+-------------------------------------------------- --------------------------
+
+ If you use M80 and L80 to assemble this, from the DOS command line
+
+   M80  =PSG/r
+   L80  PSG,PSG/n/e
+
+ will do. Rename the extension of the COM file you created to .XRL.
+
+ An example of how to use this XRL will be given in the last example of the next chapter.
+
+
+"System variable address"
+
+ The following system variables have fixed addresses and are guaranteed not to change even if the H-FORTH version changes in the future. Therefore, it can be referenced from machine language routines created by the user, such as XRL.
+
+$0106  _FREE
+$0108  _ENDFREE
+$010A  _F
+$010B  _A
+$010C  _C  _BC
+$010D  _B
+$010E  _E  _DE
+$010F  _D
+$0110  _L  _HL
+$0111  _H
+$0112  _IX
+$0114  _IY
+$0116  _RPG
+$0117  _WPG
+$0118  _DPG
+$0119  _SX
+$011B  _SY
+$011D  _DX
+$011F  _DY
+$0121  _NX
+$0123  _NY
+$0125  _COL
+$0126  _ARG
+$0127  _LOG
+$0128  _XCHGET
+$012A  _XCHPUT
+
+ Additionally, addresses $0104 and $0105 contain the VDP addresses read from addresses 6 and 7 of the main ROM. When operating VDP directly, you can use the values ​​here without having to read the main ROM.
+
+
+Chapter 6   Summary of Part 2
+
+ Here are three example programs. First, let's create NTYPE.COM, which has almost the same function as the DOS TYPE command.
+ After compiling, it can be used with NTYPE 《file name》.
+-------------------------------------------------- ----------- NTYPE.4TH ---
+4096 CONST>> BUFSIZE    /* Buffer size = 4096 bytes */
+$5C CONST>> &FCB        /* FCB prepared by DOS */
+
+ARRAY( BYTE: BUFFER 0 ) /* Take buffer as variable array */
+
+/* --- Word to display N characters from the beginning of the buffer --- */
+
+: NCHPUT PARAM( N )     /* Parameter is N */
+VAR( I )                /* Local variable */
+
+0 >> I                  /* The initial value of I is 0 (start of the buffer) */
+WHILE( I N < ){         /* Repeat for I<N */
+    BUFFER [ I ] CHPUT  /* Output I-th BUFFER */
+    I 1 + >> I          /* Add 1 to I */
+} ;
+
+/* --- Main word --- */
+
+: MAIN
+
+_FREE BUFSIZE ARRAY>> BUFFER  /* Specify variable array address and size */
+
+0 ( &FCB 12 + ) !        /* Reset current block */
+&FCB >> _DE $0F BDOS     /* File open */
+_A IF{                   /* Fail if A is not 0 */
+    "FILE NOT FOUND" ERROR  /* Display error and exit */
+}
+1 ( &FCB 14 + ) !        /* Record size = 1 byte */
+0 ( &FCB 33 + ) ! 0 ( &FCB 35 + ) !  /* Record position = 0 */
+
+{        /* start of loop */
+    & BUFFER >> _DE $1A BDOS    /* Set DTA to the beginning of BUFFER */
+
+    &FCB >> _DE BUFSIZE >> _HL
+    $27 BDOS                    /* Read 1 block */
+    
+   _A IF{                       /* If A is not 0 */
+        _HL NCHPUT              /* HL = Output only the valid number of characters */
+        BREAK                   /* Break out of the loop */
+
+    }{                          /* If A is 0 */
+        BUFSIZE NCHPUT          /* Print all characters in buffer */
+    }
+}                               /* repeat */
+;
+END MAIN
+-------------------------------------------------- ------------------------
+
+ The following example is a graphical demonstration. If you want to stop, press CTRL-STOP.
+-------------------------------------------------- ----------- LINE.4TH ---
+ARRAY( INT: PALETTE 0 )         /* Variable array for palette */
+
+/* --- Word that draws a lot of lines on the screen --- */
+
+: DRAW
+VAR( X Y C )
+
+0 >> C                   /* Initial value of C */
+0 >> Y                   /* Initial value of Y */
+WHILE( Y 212 < ){        /* Repeat for Y<212 */
+    0 >> _DX 0 >> _DY    /* Drawing start point */
+    256 >> _NX Y >> _NY  /* Length to draw X and Y */
+    C 8 + >> _COL        /* Color is C+8, i.e. 8 to 15*/
+    0 >> _LOG            /* Logical operation = PSET */
+    LINE                 /* Draw a line */
+    
+    C 1 + 7 AND >> C     /* Add 1 to C and AND with 7 */
+    Y 2 + >> Y           /* Add 2 to Y */
+}
+
+254 >> X                 /* Initial value of X */
+WHILE( X 0 >= ){         /* Repeat for X>=0 */
+    0 >> _DX 0 >> _DY    /* Drawing start point */
+    X >> _NX 212 >> _NY  /* Length to draw X and Y */
+    C 8 + >> _COL        /* Color is C+8, i.e. 8 to 15*/
+    0 >> _LOG            /* Logical operation = PSET */
+    LINE                 /* Draw a line */
+    
+    C 1 + 7 AND >> C     /* Add 1 to C and AND with 7 */
+    X 2 - >> X           /* Subtract 2 from X */
+} ;
+
+/* --- Main word --- */
+
+: MAIN
+VAR( I P )
+
+5 >> _A $5F BIOS           /* Set to screen 5 */
+
+DATA( INT:
+    0 0 0 0 0 0 0 0        /* Palettes 0 to 7 */
+    $700 $701 $602 $503    /* Pallets No. 8 to 11 */
+    $404 $305 $206 $107    /* Pallets No. 12 to 15 */
+) ARRAY>> PALETTE          /* Make this a variable array as is */
+
+& PALETTE SETPAL           /* Palette settings */
+DRAW                       /* Drawing */
+
+{
+    PALETTE [ 8 ] >> P     /* Save palette number 8 to P */
+    8 >> I                 /* Initial value of I 8 */
+    WHILE( I 15 < ){
+        PALETTE [ I 1 + ]  /* I+1 */
+        >> PALETTE [ I ]   /* Move to number I */
+        I 1 + >> I
+    }
+    P >> PALETTE [ 15 ]    /* Move pallet number 8 to number 15 */
+    
+    5 VSYNC                /* Kill time appropriately */
+    
+    & PALETTE SETPAL       /* Set new palette */
+}
+;
+END MAIN
+-------------------------------------------------- ------------------------
+
+The final example uses PSG.XRL created in Chapter 5.
+-------------------------------------------------- -------- XRLTEST.4TH ---
+VAR( XRLTOP )
+ARRAY( BYTE: FCB 37 )
+
+/* --- Word to load XRL --- */
+
+: LOADXRL
+VAR( FILESIZE NEWFREE )
+"PSG.XRL" & FCB CNVFCB   /* Set name to FCB */
+DROP                     /* Discard the conversion result as it is not needed */
+
+0 ( & FCB 12 + ) !       /* Reset current block */
+& FCB >> _DE $0F BDOS    /* File open */
+_A IF{                   /* Fail if A is not 0 */
+    "FILE NOT FOUND" ERROR  /* Display error and exit */
+}
+
+( & FCB 16 + @ ) >> FILESIZE  /* Lower 2 bytes of file size */
+
+( & FCB 18 + @ ) 0 <>    /* Is the upper file size not 0? */
+FILESIZE ( _ENDFREE _FREE - ) _>  /* If the bottom is larger than the free area */
+OR IF{
+    "FILE TOO LARGE" ERROR  /* Display error and exit */
+}
+
+1 ( & FCB 14 + ) !          /* Record size = 1 byte */
+0 ( & FCB 33 + ) ! 0 ( & FCB 35 + ) !  /* Record position = 0 */
+
+_FREE >> _DE $1A BDOS      /* Set DTA to the beginning of free area */
+
+& FCB >> _DE FILESIZE >> _HL $27 BDOS  /* Read execution */
+
+_FREE >> XRLTOP            /* Start address of loaded XRL */
+
+( XRLTOP 2 + ) @ XRLTOP + >> NEWFREE  /* After relocating, the relocation table is no longer needed. */
+
+XRLTOP RELOCATE            /* Execute relocate */
+
+NEWFREE >> _FREE           /* Reset _FREE */
+
+/* Although it is not relevant to this example, it is recommended to reset _FREE after loading to prevent the XRL body from being destroyed by variable arrays, etc. */
+
+;
+
+/* --- Word that calls XRL --- */
+
+: PSG@ PARAM( N )
+
+N ( XRLTOP 4 + ) C!     /* Write N to REGSEL */
+( XRLTOP 6 + ) CALL     /* Call RDPSG */
+( XRLTOP 5 + ) C@       /* Read REGDAT */
+;
+
+: PSG! PARAM( D N )
+
+N ( XRLTOP 4 + ) C!    /* Write N to REGSEL */
+D ( XRLTOP 5 + ) C!    /* Write D to REGDAT */
+( XRLTOP 9 + ) CALL    /* Call WRTPSG */
+;
+
+/* --- Main word --- */
+
+: MAIN
+VAR( I F )
+
+LOADXRL            /* Load XRL */
+
+$BE 7 PSG!         /* Channel 1, only square wave ON */
+ 12 8 PSG!         /* Channel 1, volume = 12 */
+
+0 >> I
+WHILE( I 5 < ){    /* repeat 5 times */
+    100 >> F
+    WHILE( F 300 < ){
+        ( F 255 AND ) 0 PSG!   /* Set lower division ratio */
+        ( F 256 _/ ) 1 PSG!    /* Set the upper division ratio */
+
+        1 VSYNC    /* Wait for one vertical period (1/60 seconds) */
+
+        F 1 + >> F
+    }
+    I 1 + >> I
+}
+
+  0 8 PSG!         /* Channel 1, volume = 0 */
+$BF 7 PSG!         /* Stop sound on all channels */
+;
+END MAIN
+-------------------------------------------------- -------------------------

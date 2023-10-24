@@ -1,0 +1,25 @@
+＜Sample3のメモ＞
+
+
+ファイル名  UGUIDE2.txt
+
+UGUIDE2.txtよりアセンブラファイルを切り取って、取り出す。取り出したファイル名は　PSG.mac　とする
+
+MSXアセンブラで変換
+
+   M80  =PSG/r
+   L80  PSG,PSG/n/e
+
+出来上がった　PSG.COM　の拡張子を変更し　PSG.XRL　とする
+
+UGUIDE2.txtよりFORTH言語ファイルを切り取って、取り出す。ファイル名は　EXAMPLE3.4TH　とした。
+
+HFORTHでコンパイルする
+
+   hforth example3.4th
+   
+EXAMPLE3.COM　が作成される。
+
+EXAMPLE3.COMを実行して、電子音が鳴れば成功。
+
+
