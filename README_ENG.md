@@ -1,6 +1,6 @@
 # H-FORTH_MSX  
   
-   << 日本語版はここをクリック >>  
+[<< 日本語版はここをクリック >>](README.md)  
   
   
 This is based on the H-FORTH site (see below), which is a FORTH language published by A. Hiramatsu in 1999.  
