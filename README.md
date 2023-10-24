@@ -1,6 +1,6 @@
 # H-FORTH_MSX  
   
-      Click here for English version   
+[ Click here for English version](docs/README_ENG.md)   
   
   
 これはA.Hiramatsu（平松　明夫）さんが１９９９年に発表したFORTH言語であるH-FORTHのサイト（以下を参照）をもとにしています。  
