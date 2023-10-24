@@ -1,46 +1,46 @@
-4096 CONST>> BUFSIZE    /* Buffer size = 4096 bytes */
-$5C CONST>> &FCB        /* FCB prepared by DOS */
+4096 CONST>> BUFSIZE		/* バッファのサイズ＝４０９６バイト */
+$5C CONST>> &FCB		/* ＤＯＳが用意しているＦＣＢ */
 
-ARRAY( BYTE: BUFFER 0 ) /* Take buffer as variable array */
+ARRAY( BYTE: BUFFER 0 )		/* バッファを可変配列としてとる */
 
-/* --- Word to display N characters from the beginning of the buffer --- */
+/* －－－　バッファの先頭から N文字表示するワード　－－－ */
 
-: NCHPUT PARAM( N )     /* Parameter is N */
-VAR( I )                /* Local variable */
+: NCHPUT  PARAM( N )		/* パラメータは N */
+VAR( I )			/* ローカル変数 */
 
-0 >> I                  /* The initial value of I is 0 (start of the buffer) */
-WHILE( I N < ){         /* Repeat for I<N */
-    BUFFER [ I ] CHPUT  /* Output I-th BUFFER */
-    I 1 + >> I          /* Add 1 to I */
+0 >> I				/* I の初期値は０（バッファの先頭） */
+WHILE( I N < ){			/* I<N の間くり返し */
+    BUFFER [ I ] CHPUT		/* BUFFER の I 番目を出力 */
+    I 1 + >> I			/* I に１を足す */
 } ;
 
-/* --- Main word --- */
+/* －－－　メインワード　－－－ */
 
 : MAIN
 
-_FREE BUFSIZE ARRAY>> BUFFER  /* Specify variable array address and size */
+_FREE BUFSIZE ARRAY>> BUFFER		/* 可変配列の番地、サイズを指定 */
 
-0 ( &FCB 12 + ) !        /* Reset current block */
-&FCB >> _DE $0F BDOS     /* File open */
-_A IF{                   /* Fail if A is not 0 */
-    "FILE NOT FOUND" ERROR  /* Display error and exit */
+0 ( &FCB 12 + ) !			/* カレントブロックをリセット */
+&FCB >> _DE $0F BDOS			/* ファイルオープン */
+_A IF{					/* Ａが０でなければ失敗 */
+    "FILE NOT FOUND" ERROR		/* エラー表示して終了 */
 }
-1 ( &FCB 14 + ) !        /* Record size = 1 byte */
-0 ( &FCB 33 + ) ! 0 ( &FCB 35 + ) !  /* Record position = 0 */
+1 ( &FCB 14 + ) !			/* レコードサイズ＝１バイト */
+0 ( &FCB 33 + ) ! 0 ( &FCB 35 + ) !	/* レコードポジション＝０ */
 
-{        /* start of loop */
-    & BUFFER >> _DE $1A BDOS    /* Set DTA to the beginning of BUFFER */
+{					/* ループ始め */
+    & BUFFER >> _DE $1A BDOS		/* ＤＴＡを BUFFER の先頭に設定 */
 
-    &FCB >> _DE BUFSIZE >> _HL
-    $27 BDOS                    /* Read 1 block */
-    
-   _A IF{                       /* If A is not 0 */
-        _HL NCHPUT              /* HL = Output only the valid number of characters */
-        BREAK                   /* Break out of the loop */
+    &FCB >> _DE  BUFSIZE >> _HL
+    $27 BDOS				/* １ブロック読み込み */
 
-    }{                          /* If A is 0 */
-        BUFSIZE NCHPUT          /* Print all characters in buffer */
+    _A IF{				/* Ａが０でない場合 */
+        _HL NCHPUT			/* ＨＬ＝有効な文字数だけ出力 */
+        BREAK				/* ループを抜ける */
+
+    }{					/* Ａが０の場合 */
+        BUFSIZE NCHPUT			/* バッファの文字を全部出力 */
     }
-}                               /* repeat */
+}					/* くり返し */
 ;
 END MAIN
