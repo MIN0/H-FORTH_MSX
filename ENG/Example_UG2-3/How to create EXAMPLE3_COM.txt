@@ -1,3 +1,5 @@
+<How to execute Example UG2-3>  
+  
 File name UGUIDE2.txt
 
 Cut and extract the assembler file from UGUIDE2.txt. The extracted file name is PSG.mac
