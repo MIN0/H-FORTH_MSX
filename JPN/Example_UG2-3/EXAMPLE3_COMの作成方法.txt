@@ -1,4 +1,4 @@
-＜Sample3のメモ＞
+＜Example UG2-3の実行方法＞
 
 
 ファイル名  UGUIDE2.txt
