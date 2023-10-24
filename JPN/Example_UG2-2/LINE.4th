@@ -1,64 +1,64 @@
-ARRAY( INT: PALETTE 0 )         /* Variable array for palette */
+ARRAY( INT: PALETTE 0 )		/* パレット用可変配列 */
 
-/* --- Word that draws a lot of lines on the screen --- */
+/* －－－　画面にいっぱい線を引くワード　－－－ */
 
 : DRAW
 VAR( X Y C )
 
-0 >> C                   /* Initial value of C */
-0 >> Y                   /* Initial value of Y */
-WHILE( Y 212 < ){        /* Repeat for Y<212 */
-    0 >> _DX 0 >> _DY    /* Drawing start point */
-    256 >> _NX Y >> _NY  /* Length to draw X and Y */
-    C 8 + >> _COL        /* Color is C+8, i.e. 8 to 15*/
-    0 >> _LOG            /* Logical operation = PSET */
-    LINE                 /* Draw a line */
+0 >> C				/* C の初期値 */
+0 >> Y				/* Y の初期値 */
+WHILE( Y 212 < ){		/* Y<212 の間くりかえし */
+    0 >> _DX    0 >> _DY	/* 描画開始点 */
+    256 >> _NX  Y >> _NY	/* Ｘ，Ｙの描画する長さ */
+    C 8 + >> _COL		/* 色は C+8 、つまり8～15*/
+    0 >> _LOG			/* ロジカルオペレーション＝PSET */
+    LINE			/* 線を引く */
     
-    C 1 + 7 AND >> C     /* Add 1 to C and AND with 7 */
-    Y 2 + >> Y           /* Add 2 to Y */
+    C 1 + 7 AND >> C		/* C に１を足して 7 で AND する */
+    Y 2 + >> Y			/* Y に２を足す */
 }
 
-254 >> X                 /* Initial value of X */
-WHILE( X 0 >= ){         /* Repeat for X>=0 */
-    0 >> _DX 0 >> _DY    /* Drawing start point */
-    X >> _NX 212 >> _NY  /* Length to draw X and Y */
-    C 8 + >> _COL        /* Color is C+8, i.e. 8 to 15*/
-    0 >> _LOG            /* Logical operation = PSET */
-    LINE                 /* Draw a line */
+254 >> X			/* X の初期値 */
+WHILE( X 0 >= ){		/* X>=0 の間くりかえし */
+    0 >> _DX    0 >> _DY	/* 描画開始点 */
+    X >> _NX  212 >> _NY	/* Ｘ，Ｙの描画する長さ */
+    C 8 + >> _COL		/* 色は C+8 、つまり8～15*/
+    0 >> _LOG			/* ロジカルオペレーション＝PSET */
+    LINE			/* 線を引く */
     
-    C 1 + 7 AND >> C     /* Add 1 to C and AND with 7 */
-    X 2 - >> X           /* Subtract 2 from X */
+    C 1 + 7 AND >> C		/* C に１を足して 7 で AND する */
+    X 2 - >> X			/* X から２を引く */
 } ;
 
-/* --- Main word --- */
+/* －－－　メインワード　－－－ */
 
 : MAIN
 VAR( I P )
 
-5 >> _A $5F BIOS           /* Set to screen 5 */
+5 >> _A  $5F BIOS		/* スクリーン５にする */
 
 DATA( INT:
-    0 0 0 0 0 0 0 0        /* Palettes 0 to 7 */
-    $700 $701 $602 $503    /* Pallets No. 8 to 11 */
-    $404 $305 $206 $107    /* Pallets No. 12 to 15 */
-) ARRAY>> PALETTE          /* Make this a variable array as is */
+    0 0 0 0 0 0 0 0		/* 0～7番のパレット */
+    $700 $701 $602 $503		/* 8～11番のパレット */
+    $404 $305 $206 $107		/* 12～15番のパレット */
+) ARRAY>> PALETTE		/* これをそのまま可変配列にする */
 
-& PALETTE SETPAL           /* Palette settings */
-DRAW                       /* Drawing */
+& PALETTE SETPAL		/* パレット設定 */
+DRAW				/* 描画 */
 
 {
-    PALETTE [ 8 ] >> P     /* Save palette number 8 to P */
-    8 >> I                 /* Initial value of I 8 */
+    PALETTE [ 8 ] >> P		/* パレット８番を P に保存 */
+    8 >> I			/* I の初期値 8 */
     WHILE( I 15 < ){
-        PALETTE [ I 1 + ]  /* I+1 */
-        >> PALETTE [ I ]   /* Move to number I */
+        PALETTE [ I 1 + ]	/* I+1番を */
+        >> PALETTE [ I ]	/* I番に移す */
         I 1 + >> I
     }
-    P >> PALETTE [ 15 ]    /* Move pallet number 8 to number 15 */
+    P >> PALETTE [ 15 ]		/* ８番のパレットを１５番に移す */
     
-    5 VSYNC                /* Kill time appropriately */
+    5 VSYNC			/* 適当に時間をつぶす */
     
-    & PALETTE SETPAL       /* Set new palette */
+    & PALETTE SETPAL		/* 新しいパレットを設定 */
 }
 ;
 END MAIN
